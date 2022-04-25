@@ -5,7 +5,7 @@ from numba import njit
 
 def read_image(image_path: str) -> np.ndarray:
     image = Image.open(image_path)
-    return np.asarray(image, dtype=float)
+    return np.asarray(image, dtype=float) / 255
 
 @njit
 def get_neighbours(row: int, col: int, max_rows: int, max_cols: int, moore: bool = True) -> list:
