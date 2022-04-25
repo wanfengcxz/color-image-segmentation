@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union
 
 from numba import njit
 
@@ -16,24 +17,24 @@ class Gene(Enum):
 
 
 @njit
-def to_diff(gene: Gene) -> tuple[int, int]:
-    if gene == Gene.right:
+def to_diff(gene_value: int) -> tuple[int, int]:
+    if gene_value == 1:
         return 0, 1
-    if gene == Gene.left:
+    if gene_value == 2:
         return 0, -1
-    if gene == Gene.up:
+    if gene_value == 3:
         return -1, 0
-    if gene == Gene.down:
+    if gene_value == 4:
         return 1, 0
-    if gene == Gene.upright:
+    if gene_value == 5:
         return -1, 1
-    if gene == Gene.downright:
+    if gene_value == 6:
         return 1, 1
-    if gene == Gene.upleft:
+    if gene_value == 7:
         return -1, -1
-    if gene == Gene.downleft:
+    if gene_value == 8:
         return 1, -1
-    if gene == Gene.none:
+    if gene_value == 9:
         return 0, 0
 
 

@@ -9,30 +9,7 @@ from numba import njit
 
 from evolution.gene import Gene, to_diff, from_diff
 from evolution.phenotype import to_phenotype
-from evolution.utils import read_image
-
-
-@njit
-def get_neighbours(row: int, col: int, max_rows: int, max_cols: int, moore: bool = True) -> list:
-    neighbours = []
-    if col > 0:  # 1
-        neighbours.append((row, col - 1))
-    if col < (max_cols - 1):  # 2
-        neighbours.append((row, col + 1))
-    if row > 0:  # 3
-        neighbours.append((row - 1, col))
-    if row < (max_rows - 1):  # 4
-        neighbours.append((row + 1, col))
-    if moore:
-        if row > 0 and col < (max_cols - 1):  # 5
-            neighbours.append((row - 1, col + 1))
-        if row < (max_rows - 1) and col < (max_cols - 1):  # 6
-            neighbours.append((row + 1, col + 1))
-        if row > 0 and col > 0:  # 7
-            neighbours.append((row - 1, col - 1))
-        if row < (max_rows - 1) and col > 0:  # 8
-            neighbours.append((row + 1, col - 1))
-    return neighbours
+from evolution.utils import get_neighbours, read_image
 
 
 @njit
@@ -49,6 +26,7 @@ def initialize_genotype(image: np.ndarray, n_segments: int = 1, moore: bool = Tr
     edge_queue = [(0.0, ((0, 0), (0, 0))) for x in range(0)]
 
     node = np.random.randint(graph_shape[0]), np.random.randint(graph_shape[1])
+    print(node)
     n_added += 1
     while n_added < n_total:
         if not added[node]:
@@ -83,7 +61,7 @@ def visualize_genotype(genotype: np.ndarray, graph_shape: tuple[int, int]) -> No
     max_cols = graph_shape[1]
     for row in range(max_rows):
         for col in range(max_cols):
-            row_diff, col_diff = to_diff(Gene(genotype[row, col]))
+            row_diff, col_diff = to_diff(genotype[row, col])
             to_node = f'{row}-{col}'
             from_node = f'{row + row_diff}-{col + col_diff}'
             G.add_node(from_node, pos=(col + col_diff, max_rows - (row + row_diff)))
