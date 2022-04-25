@@ -1,5 +1,6 @@
 import numpy as np
 import numba
+from matplotlib import pyplot as plt
 from numba import njit
 
 from evolution.gene import Gene, to_diff
@@ -40,6 +41,19 @@ def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
                     phenotype[node] = segment_merge_value
 
     return phenotype
+
+
+def visualize_phenotype(phenotype: np.ndarray) -> None:
+    n_segments = np.max(phenotype) + 1
+    colors = np.random.random((n_segments, 3))
+    image = np.zeros((*phenotype.shape, 3))
+    for row in range(phenotype.shape[0]):
+        for col in range(phenotype.shape[1]):
+            segment = phenotype[row, col]
+            image[row, col, :] = colors[segment, :]
+
+    plt.imshow(image)
+    plt.show()
 
 
 
