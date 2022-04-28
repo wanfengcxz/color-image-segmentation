@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -8,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from evolution.phenotype import to_phenotype
 from evolution.utils import get_neighbours
 
-@njit
+#@njit
 def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
@@ -24,12 +26,12 @@ def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> 
     return centroids/counts.reshape((-1, 1))
 
 
-@njit
+#@njit
 def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> tuple[float, float, float]:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
-
+    print(n_segments)
     segment_centroids = get_centroids(phenotype, image, n_segments)
 
     edge_value = 0
@@ -60,15 +62,16 @@ def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
     return np.array([genotype_fitness(genotype, image) for genotype in population])
 
 
-def plot_normalized_fitness(population_fitness: np.ndarray) -> None:
+def plot_normalized_fitness(population_fitness: np.ndarray, front_assignment: Optional[np.ndarray] = None) -> None:
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     scaler = MinMaxScaler(feature_range=(0, 1))
-    xs = scaler.fit_transform(population_fitness[:, 0].reshape(-1, 1))
-    ys = scaler.fit_transform(population_fitness[:, 1].reshape(-1, 1))
-    zs = scaler.fit_transform(population_fitness[:, 2].reshape(-1, 1))
+    scaled = scaler.fit_transform(population_fitness)
+    xs = scaled[:, 0]
+    ys = scaled[:, 1]
+    zs = scaled[:, 2]
 
-    Axes3D.scatter(xs=xs, ys=ys, zs=zs, ax=ax, zdir='z', s=20, c=None, depthshade=True)
+    Axes3D.scatter(xs=xs, ys=ys, zs=zs, c=front_assignment, ax=ax, zdir='z', s=20, depthshade=True)
     ax.set_xlabel('Edge Value')
     ax.set_ylabel('Connectivity')
     ax.set_zlabel('Deviation')

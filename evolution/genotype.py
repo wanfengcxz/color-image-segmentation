@@ -67,8 +67,8 @@ def visualize_genotype(genotype: np.ndarray, graph_shape: tuple[int, int], image
             row_diff, col_diff = to_diff(genotype[row, col])
             from_node = f'{row}-{col}'
             to_node = f'{row + row_diff}-{col + col_diff}'
-            G.add_node(from_node, pos=(col, row))
-            G.add_node(to_node, pos=(col + col_diff, row + row_diff))
+            G.add_node(from_node, pos=(col, max_rows - row))
+            G.add_node(to_node, pos=(col + col_diff, max_rows - row - row_diff))
             G.add_edge(from_node, to_node)
 
     pos = nx.get_node_attributes(G, 'pos')
