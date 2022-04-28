@@ -32,7 +32,6 @@ def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
-    print(n_segments)
     segment_centroids = get_centroids(phenotype, image, n_segments)
 
     edge_value = 0.0
