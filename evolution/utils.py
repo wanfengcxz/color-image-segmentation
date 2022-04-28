@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from numba import njit
 
-int_list_type = numba.types.ListType(numba.int8)
+int_list_type = numba.types.ListType(numba.int16)
 
 def read_image(image_path: str) -> np.ndarray:
     image = Image.open(image_path)

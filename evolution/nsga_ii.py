@@ -13,7 +13,7 @@ from evolution.utils import int_list_type
 
 @njit
 def initialize_population(image: np.ndarray, population_size: int, n_segments: int = 24, moore: bool = True) -> np.ndarray:
-    population = np.zeros((population_size, image.shape[0] * image.shape[1]))
+    population = np.zeros((population_size, image.shape[0] * image.shape[1]), dtype=numba.int16)
     for i in range(population_size):
         print(f'Initializing individual {i}')
         population[i] = initialize_genotype(image, n_segments=n_segments, moore=moore)
@@ -30,21 +30,21 @@ def is_dominating(fitness1: np.ndarray, fitness2: np.ndarray) -> bool:
 @njit
 def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
     fronts = Dict.empty(
-        key_type=numba.int8,
+        key_type=numba.int16,
         value_type=int_list_type
     )
-    fronts[1] = List.empty_list(numba.int8)
+    fronts[1] = List.empty_list(numba.int16)
 
     dominates = Dict.empty(
-        key_type=numba.int8,
+        key_type=numba.int16,
         value_type=int_list_type
     )
 
     for x in range(pop_fitness.shape[0]):
-        dominates[x] = List.empty_list(numba.int8)
+        dominates[x] = List.empty_list(numba.int16)
 
-    front_assignment = np.ones(pop_fitness.shape[0], dtype=numba.int8)
-    dominated_by = np.zeros(pop_fitness.shape[0], dtype=numba.int8)
+    front_assignment = np.ones(pop_fitness.shape[0], dtype=numba.int16)
+    dominated_by = np.zeros(pop_fitness.shape[0], dtype=numba.int16)
 
     for p, fitness1 in enumerate(pop_fitness):
         for q, fitness2 in enumerate(pop_fitness):
@@ -60,7 +60,7 @@ def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
 
     i = 1
     while len(fronts[i]) != 0:
-        new_front = List.empty_list(numba.int8)
+        new_front = List.empty_list(numba.int16)
         for p in fronts[i]:
             for q in dominates[p]:
                 dominated_by[q] -= 1
@@ -77,9 +77,9 @@ def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
     print(fronts)
     return front_assignment
 
-
+@njit
 def crowding_distance(population_fitness: np.ndarray, front_assignment: np.ndarray) -> np.ndarray:
-    distance_assignment = np.zeros(population_fitness.shape[0])
+    distance_assignment = np.zeros(population_fitness.shape[0], dtype=numba.float64)
     i = 1
     while i in front_assignment:
         front = np.where(front_assignment == i)[0]
@@ -98,7 +98,7 @@ def crowding_distance(population_fitness: np.ndarray, front_assignment: np.ndarr
 
     return distance_assignment
 
-
+@njit
 def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> int:
     if front_assignment[i] < front_assignment[j]:
         return i
@@ -110,24 +110,42 @@ def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_as
         else:
             return j
 
+@njit
+def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np.ndarray:
+    crowding_assignment = -crowding_assignment
+    lex_sorted = np.zeros(front_assignment.shape[0], dtype=numba.int16)
+    front_nr = 1
+    max_front_nr = np.max(front_assignment)
+    idxs_added = 0
+    while front_nr <= max_front_nr:
+        idxs = np.where(front_assignment == front_nr)[0]
+        crowding_values = crowding_assignment[idxs]
+        crowding_sorted_idxs = np.argsort(crowding_values)
+        lex_sorted[idxs_added:idxs_added+idxs.shape[0]] = idxs[crowding_sorted_idxs]
+        idxs_added += idxs.shape[0]
+        front_nr += 1
 
+    return lex_sorted
+
+
+@njit
 def nsga_ii(image: np.ndarray, population_size: int, generations: int = 10, n_segments: int = 24) \
         -> tuple[np.ndarray, np.ndarray]:
     P = initialize_population(image, population_size, n_segments=n_segments)
     Q = new_population(P)
-    front_assignment = np.ones(P.shape)
+    population_front_assignment = np.ones(P.shape[0], dtype=numba.int16)
     for g in range(generations):
         print(f'Generation {g}')
         R = np.concatenate((P, Q), axis=0)
         fitness = population_fitness(R, image)
         front_assignment = fast_non_dominated_sort(fitness)
         crowding_assignment = crowding_distance(fitness, front_assignment)
-        sorted_idx = np.lexsort((-crowding_assignment, front_assignment))
+        sorted_idx = lexsort(front_assignment, crowding_assignment)
         P_next = R[sorted_idx][:population_size]
         Q_next = new_population(P_next)
         P = P_next
         Q = Q_next
-        front_assignment = front_assignment[sorted_idx][:population_size]
+        population_front_assignment = front_assignment[sorted_idx][:population_size]
 
-    return P, front_assignment
+    return P, population_front_assignment
 

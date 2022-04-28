@@ -21,7 +21,7 @@ def initialize_genotype(image: np.ndarray, n_segments: int = 1, moore: bool = Tr
 
     added = np.zeros(graph_shape, dtype=numba.boolean)
 
-    genotype = np.ones(n_total, dtype=numba.int8) * Gene.none.value
+    genotype = np.ones(n_total, dtype=numba.int16) * Gene.none.value
     genotype_weights = np.zeros(n_total)
 
     edge_queue = [(0.0, ((0, 0), (0, 0))) for x in range(0)]

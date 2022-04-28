@@ -11,8 +11,8 @@ from evolution.utils import get_neighbours
 
 @njit
 def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
-    genotype_2d = np.reshape(genotype, (rows, cols))
-    phenotype = -np.ones((rows, cols), dtype=numba.int8)
+    genotype_2d = np.ascontiguousarray(genotype).reshape(rows, cols)
+    phenotype = -np.ones((rows, cols), dtype=numba.int16)
     segment_value = 0
     for row in range(rows):
         for col in range(cols):

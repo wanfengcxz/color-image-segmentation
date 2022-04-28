@@ -1,5 +1,6 @@
 from typing import Optional
 
+import numba
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from evolution.phenotype import to_phenotype
 from evolution.utils import get_neighbours
 
-#@njit
+@njit
 def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
@@ -26,17 +27,17 @@ def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> 
     return centroids/counts.reshape((-1, 1))
 
 
-#@njit
-def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> tuple[float, float, float]:
+@njit
+def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
     print(n_segments)
     segment_centroids = get_centroids(phenotype, image, n_segments)
 
-    edge_value = 0
-    connectivity = 0
-    deviation = 0
+    edge_value = 0.0
+    connectivity = 0.0
+    deviation = 0.0
     for row in range(max_rows):
         for col in range(max_cols):
             segment = phenotype[row, col]
@@ -49,17 +50,20 @@ def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> tuple[float, 
                     connectivity += (1/8)
             deviation += np.linalg.norm(node_rgb - segment_centroids[segment])
 
-    return edge_value, connectivity, deviation
+    return np.array([edge_value, connectivity, deviation])
 
 
-#@njit
-def genotype_fitness(genotype: np.ndarray, image: np.ndarray) -> tuple[float, float, float]:
+@njit
+def genotype_fitness(genotype: np.ndarray, image: np.ndarray) -> np.ndarray:
     return phenotype_fitness(to_phenotype(genotype, image.shape[0], image.shape[1]), image)
 
 
-#@njit
+@njit
 def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
-    return np.array([genotype_fitness(genotype, image) for genotype in population])
+    fitness = np.empty((population.shape[0], 3), dtype=numba.float64)
+    for i, individual in enumerate(population):
+        fitness[i] = genotype_fitness(individual, image)
+    return fitness
 
 
 def plot_normalized_fitness(population_fitness: np.ndarray, front_assignment: Optional[np.ndarray] = None) -> None:
