@@ -66,19 +66,36 @@ def to_color_segmentation(phenotype: np.ndarray) -> np.ndarray:
 def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
-    image = np.ones(phenotype.shape) * 255
+    image = np.ones(phenotype.shape, dtype=float)
     for row in range(max_rows):
         for col in range(max_cols):
             if row == 0 or row == max_rows - 1 or col == 0 or col == max_cols - 1:
-                image[row, col] = 0
+                image[row, col] = 0.0
                 continue
             node = (row, col)
             neighbours = get_neighbours(row, col, max_rows, max_cols)
             for neighbour in neighbours:
                 if phenotype[node] != phenotype[neighbour]:
-                     image[row, col] = 0
+                     image[row, col] = 0.0
     return image
 
+def visualize_type1(phenotype: np.ndarray, image: np.ndarray, ax: Optional[plt.axes] = None) -> None:
+    type1 = image.copy()
+    segmentation = to_contour_segmentation(phenotype)
+    type1[np.where(segmentation == 0)] = [0.0, 1.0, 0.0]
+    if ax is None:
+        plt.imshow(type1)
+        plt.show()
+    else:
+        ax.imshow(type1)
+
+def visualize_type2(phenotype: np.ndarray, ax: Optional[plt.axes] = None) -> None:
+    segmentation = to_contour_segmentation(phenotype)
+    if ax is None:
+        plt.imshow(segmentation, cmap='gray')
+        plt.show()
+    else:
+        ax.imshow(segmentation)
 
 def visualize_phenotype(phenotype: np.ndarray, ax: Optional[plt.Axes] = None) -> None:
     image = to_contour_segmentation(phenotype)
