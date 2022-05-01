@@ -4,6 +4,7 @@ import numba
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib import colors
 
 from numba import njit
 from mpl_toolkits.mplot3d import Axes3D
@@ -68,26 +69,30 @@ def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
 
 def plot_fitness(fitness: np.ndarray,
                  normalized: bool = False,
-                 ax: Optional[plt.axes] = None,
                  front_assignment: Optional[np.ndarray] = None) -> None:
-    if ax is None:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
     if normalized:
         scaler = MinMaxScaler(feature_range=(0, 1))
         fitness = scaler.fit_transform(fitness)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    cmap = plt.cm.get_cmap('viridis', front_assignment.max() - front_assignment.min() + 1)
+    bounds = range(front_assignment.min(), front_assignment.max() + 2)
+    norm = colors.BoundaryNorm(bounds, cmap.N)
 
     xs = fitness[:, 0]
     ys = fitness[:, 1]
     zs = fitness[:, 2]
 
-    Axes3D.scatter(xs=xs, ys=ys, zs=zs, c=front_assignment, ax=ax, zdir='z', s=20, depthshade=True)
+    p = Axes3D.scatter(xs=xs, ys=ys, zs=zs, c=front_assignment, cmap=cmap, norm=norm, ax=ax)
     ax.set_xlabel('Edge Value')
     ax.set_ylabel('Connectivity')
     ax.set_zlabel('Deviation')
+    cb = fig.colorbar(p, ax=ax, ticks=front_assignment+0.5)
+    cb.set_ticklabels(front_assignment)
 
-    if ax is None:
-        plt.show()
+    plt.show()
 
 
 def save_fitness(fitness: np.ndarray,
