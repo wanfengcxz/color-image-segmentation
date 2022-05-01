@@ -3,6 +3,7 @@ from typing import Optional
 import numba
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from numba import njit
 from mpl_toolkits.mplot3d import Axes3D
@@ -65,17 +66,37 @@ def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
     return fitness
 
 
-def plot_normalized_fitness(population_fitness: np.ndarray, front_assignment: Optional[np.ndarray] = None) -> None:
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(population_fitness)
-    xs = scaled[:, 0]
-    ys = scaled[:, 1]
-    zs = scaled[:, 2]
+def plot_fitness(fitness: np.ndarray,
+                 normalized: bool = False,
+                 ax: Optional[plt.axes] = None,
+                 front_assignment: Optional[np.ndarray] = None) -> None:
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+    if normalized:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        fitness = scaler.fit_transform(fitness)
+
+    xs = fitness[:, 0]
+    ys = fitness[:, 1]
+    zs = fitness[:, 2]
 
     Axes3D.scatter(xs=xs, ys=ys, zs=zs, c=front_assignment, ax=ax, zdir='z', s=20, depthshade=True)
     ax.set_xlabel('Edge Value')
     ax.set_ylabel('Connectivity')
     ax.set_zlabel('Deviation')
-    plt.show()
+
+    if ax is None:
+        plt.show()
+
+
+def save_fitness(fitness: np.ndarray,
+                 path: str,
+                 front_assignment: Optional[np.ndarray] = None) -> None:
+
+    df = pd.DataFrame(fitness, columns=['Edge Value', 'Connectivity', 'Deviation'])
+    if front_assignment is not None:
+        df['Front'] = front_assignment
+
+    df.to_csv(path, index=False)
+
