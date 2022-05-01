@@ -2,25 +2,13 @@ from typing import Optional
 
 import numba
 import numpy as np
-from matplotlib import pyplot as plt
 from numba import njit, jit
 from numba.typed import List, Dict
 
 
 from evolution.fitness import population_fitness
-from evolution.genotype import initialize_genotype
-from evolution.phenotype import to_phenotype, visualize_type1
-from evolution.population import new_population
+from evolution.population.population import new_population, initialize_population
 from evolution.utils import int_list_type
-
-
-@njit
-def initialize_population(image: np.ndarray, population_size: int, n_segments: int = 24, moore: bool = True) -> np.ndarray:
-    population = np.zeros((population_size, image.shape[0] * image.shape[1]), dtype=numba.int16)
-    for i in range(population_size):
-        print(f'Initializing individual {i}')
-        population[i] = initialize_genotype(image, n_segments=n_segments, moore=moore)
-    return population
 
 
 @njit

@@ -1,13 +1,22 @@
+from typing import Optional
+
 import numba
-from PIL import Image
+import pandas as pd
 import numpy as np
 from numba import njit
 
 int_list_type = numba.types.ListType(numba.int16)
 
-def read_image(image_path: str) -> np.ndarray:
-    image = Image.open(image_path)
-    return np.array(image, dtype=float) / 255
+
+def save_fitness(fitness: np.ndarray,
+                 path: str,
+                 front_assignment: Optional[np.ndarray] = None) -> None:
+
+    df = pd.DataFrame(fitness, columns=['Edge Value', 'Connectivity', 'Deviation'])
+    if front_assignment is not None:
+        df['Front'] = front_assignment
+
+    df.to_csv(path, index=False)
 
 
 @njit

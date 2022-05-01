@@ -1,55 +1,32 @@
 from typing import Optional
 
+import networkx as nx
 import numpy as np
-import numba
 from matplotlib import pyplot as plt
-from numba import njit
 
-from evolution.gene import Gene, to_diff, points_outwards
+from evolution.individual.gene import to_diff
 from evolution.utils import get_neighbours
 
 
-@njit
-def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
-    genotype_2d = np.ascontiguousarray(genotype).reshape(rows, cols)
-    phenotype = -np.ones((rows, cols), dtype=numba.int16)
-    segment_value = 0
-    for row in range(rows):
-        for col in range(cols):
-            if phenotype[row, col] != -1:  # Node already added to phenotype
-                continue
+def visualize_genotype(genotype: np.ndarray, graph_shape: tuple[int, int], image: Optional[np.ndarray] = None) -> None:
+    G = nx.DiGraph()
+    genotype = np.reshape(genotype, graph_shape)
+    max_rows = graph_shape[0]
+    max_cols = graph_shape[1]
+    for row in range(max_rows):
+        for col in range(max_cols):
+            row_diff, col_diff = to_diff(genotype[row, col])
+            from_node = f'{row}-{col}'
+            to_node = f'{row + row_diff}-{col + col_diff}'
+            G.add_node(from_node, pos=(col, max_rows - row))
+            G.add_node(to_node, pos=(col + col_diff, max_rows - row - row_diff))
+            G.add_edge(from_node, to_node)
 
-            node = (row, col)
-            node_value = genotype_2d[node]
-            if points_outwards(node_value, row, col, rows, cols):
-                node_value = Gene.none.value
-            path = [node]
-            segment_merge_value = -1
-            while node_value != Gene.none.value:
-                row_diff, col_diff = to_diff(node_value)
-                node = (node[0] + row_diff, node[1] + col_diff)
-
-                node_value = genotype_2d[node]
-                if points_outwards(node_value, node[0], node[1], rows, cols):
-                    node_value = Gene.none.value
-
-                if phenotype[node] != -1 or node in path:
-                    path.append(node)
-                    segment_merge_value = phenotype[node]
-                    break
-
-                path.append(node)
-
-
-            if segment_merge_value == -1:
-                for node in path:
-                    phenotype[node] = segment_value
-                segment_value += 1
-            else:
-                for node in path:
-                    phenotype[node] = segment_merge_value
-
-    return phenotype
+    pos = nx.get_node_attributes(G, 'pos')
+    nx.draw(G, pos, node_color='w', edgecolors='k', node_size=5, width=1, with_labels=False)
+    if image is not None:
+        plt.imshow(image)
+    plt.show()
 
 
 def to_color_segmentation(phenotype: np.ndarray) -> np.ndarray:
@@ -79,6 +56,7 @@ def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
                      image[row, col] = 0.0
     return image
 
+
 def visualize_type1(phenotype: np.ndarray, image: np.ndarray, ax: Optional[plt.axes] = None) -> None:
     type1 = image.copy()
     segmentation = to_contour_segmentation(phenotype)
@@ -89,6 +67,7 @@ def visualize_type1(phenotype: np.ndarray, image: np.ndarray, ax: Optional[plt.a
     else:
         ax.imshow(type1)
 
+
 def visualize_type2(phenotype: np.ndarray, ax: Optional[plt.axes] = None) -> None:
     segmentation = to_contour_segmentation(phenotype)
     if ax is None:
@@ -96,6 +75,7 @@ def visualize_type2(phenotype: np.ndarray, ax: Optional[plt.axes] = None) -> Non
         plt.show()
     else:
         ax.imshow(segmentation)
+
 
 def visualize_phenotype(phenotype: np.ndarray, ax: Optional[plt.Axes] = None) -> None:
     image = to_contour_segmentation(phenotype)
@@ -105,9 +85,6 @@ def visualize_phenotype(phenotype: np.ndarray, ax: Optional[plt.Axes] = None) ->
     else:
         ax.imshow(image)
 
-
 def save_phenotype(phenotype: np.ndarray, path: str) -> None:
-    image = to_contour_segmentation(phenotype)
-    plt.imsave(path, image, cmap='gray')
-
-
+    segmentation = to_contour_segmentation(phenotype)
+    plt.imsave(path, segmentation, cmap='gray')

@@ -1,16 +1,12 @@
 from heapq import heappush, heappop
-from typing import Optional
 
 import numpy as np
 import numba
-import matplotlib.pyplot as plt
-import networkx as nx
 
 from numba import njit
 
-from evolution.gene import Gene, to_diff, from_diff
-from evolution.phenotype import to_phenotype
-from evolution.utils import get_neighbours, read_image
+from evolution.individual.gene import Gene, from_diff
+from evolution.utils import get_neighbours
 
 
 @njit
@@ -49,39 +45,8 @@ def initialize_genotype(image: np.ndarray, n_segments: int = 1, moore: bool = Tr
         node = to_node
 
     if n_segments > 1:
-        #highest_weights = np.argsort(genotype_weights)[-(n_segments-1):]
         highest_weights = np.argsort(genotype_weights)
         idxs = np.random.choice(highest_weights[-n_total//2:], n_segments-1)
         genotype[idxs] = Gene.none.value
 
     return genotype
-
-
-def visualize_genotype(genotype: np.ndarray, graph_shape: tuple[int, int], image: Optional[np.ndarray] = None) -> None:
-    G = nx.DiGraph()
-    genotype = np.reshape(genotype, graph_shape)
-    max_rows = graph_shape[0]
-    max_cols = graph_shape[1]
-    for row in range(max_rows):
-        for col in range(max_cols):
-            row_diff, col_diff = to_diff(genotype[row, col])
-            from_node = f'{row}-{col}'
-            to_node = f'{row + row_diff}-{col + col_diff}'
-            G.add_node(from_node, pos=(col, max_rows - row))
-            G.add_node(to_node, pos=(col + col_diff, max_rows - row - row_diff))
-            G.add_edge(from_node, to_node)
-
-    pos = nx.get_node_attributes(G, 'pos')
-    nx.draw(G, pos, node_color='w', edgecolors='k', node_size=5, width=1, with_labels=False)
-    if image is not None:
-        plt.imshow(image)
-    plt.show()
-
-if __name__ == '__main__':
-    image = read_image('training_images/86016/Test image.jpg')# 241 x 161 x 3
-    print('Creating genotype...')
-    genotype = initialize_genotype(image, n_segments=10)
-    print('Converting to phenotype...')
-    print(to_phenotype(genotype, image.shape[:2]))
-    print('Visualizing...')
-    visualize_genotype(genotype, image.shape[:2])
