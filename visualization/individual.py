@@ -85,6 +85,6 @@ def visualize_phenotype(phenotype: np.ndarray, ax: Optional[plt.Axes] = None) ->
     else:
         ax.imshow(image)
 
-def save_phenotype(phenotype: np.ndarray, path: str) -> None:
+def save_type2(phenotype: np.ndarray, path: str) -> None:
     segmentation = to_contour_segmentation(phenotype)
     plt.imsave(path, segmentation, cmap='gray')
