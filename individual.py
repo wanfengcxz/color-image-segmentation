@@ -1,53 +1,44 @@
-
-
-from operator import ge
-import random
-from typing import List, Tuple
-
-import numpy as np
+from custom_types import Genotype, ImageDimensions
+from utilities import calculate_connectivity, calculate_deviation, calculate_edge_value, prims_algorithm, separate_segments
 
 
 class Individual:
+    genotype: Genotype
+    fitness: float
 
-    def __init__(self, img_dim: Tuple[int, int]) -> None:
-        self.img_dim = img_dim
-        # List of ints from 0 to 4, representing the direction to the connected image segment
-        # 0 = None
-        # 1 = Up
-        # 2 = Right
-        # 3 = Down
-        # 4 = Left
-        self.genotype: List[int] = []
+    def __init__(self, img_data, genotype=None, weights=None):
 
-    def initialize_random(self) -> None:
-        for i in range(self.img_dim[0] * self.img_dim[1]):
-            self.genotype.append(random.randint(0, 4))
+        self.img_data = img_data
+        self.img_dim = ImageDimensions(img_data.shape[0], img_data.shape[1])
+        self.weights = weights
+        # Generate initial genotype
+        if genotype is None:
+            self.genotype = prims_algorithm(img_data)
+        else:
+            self.genotype = genotype
+        # Segments dont need to be known initially
+        self.segments = None
+        self.fitness = self.fitness_function()
 
-    def get_value_left(self, index: int) -> int:
-        # If index in first column
-        if index % self.img_dim[1] == 0:
-            return None
-        return self.genotype[index - 1]
+    def fitness_function(self):
+        """ Calculate fitness of individual """
+        # TODO: Only calculate fitness if needed?
+        if self.segments is None:
+            self.segments = separate_segments(self.genotype)
+        edge_value = calculate_edge_value(self.img_data, self.segments)
+        connectivity_value = calculate_connectivity(
+            self.segments, self.img_dim)
+        deviation = calculate_deviation(self.img_data, self.segments)
 
-    def get_value_right(self, index: int) -> int:
-        # If index in last column
-        if index % self.img_dim[1] == self.img_dim[1] - 1:
-            return None
-        return self.genotype[index + 1]
+        # Weights
+        edge_weight = self.weights[0]
+        connectivity_weight = self.weights[1]
+        deviation_weight = self.weights[2]
 
-    def get_value_up(self, index: int) -> int:
-        # If index in first row
-        if index < self.img_dim[1]:
-            return None
-        return self.genotype[index - self.img_dim[1]]
+        return edge_weight*edge_value - connectivity_weight*connectivity_value - deviation_weight*deviation
 
-    def get_value_down(self, index: int) -> int:
-        # If index in last row
-        if index >= self.img_dim[0] * self.img_dim[1] - self.img_dim[1]:
-            return None
-        return self.genotype[index + self.img_dim[1]]
-
-    def get_2d_array(self):
-        """ Get genotype as 2D array """
-        return np.array(self.genotype).reshape(
-            self.img_dim[0], self.img_dim[1])
+    def get_segments(self):
+        """ Get segments """
+        if self.segments is None:
+            self.segments = separate_segments(self.genotype)
+        return separate_segments(self.genotype)
