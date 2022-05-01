@@ -41,4 +41,4 @@ class Individual:
         """ Get segments """
         if self.segments is None:
             self.segments = separate_segments(self.genotype)
-        return separate_segments(self.genotype)
+        return self.segments
