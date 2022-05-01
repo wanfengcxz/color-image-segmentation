@@ -1,7 +1,9 @@
+from typing import Optional
+
 import numba
 import numpy as np
 from matplotlib import pyplot as plt
-from numba import njit
+from numba import njit, jit
 from numba.typed import List, Dict
 
 
@@ -133,18 +135,23 @@ def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np
     return lex_sorted
 
 
-@njit
+@jit
 def nsga_ii(image: np.ndarray,
             n_segments: int = 24,
             population_size: int = 10,
             generations: int = 10,
             p_mutate: float = 0.1,
             p_crossover: float = 0.9,
-            n_times: int = 2) \
+            n_times: int = 1,
+            fitness_path: Optional[str] = None) \
         -> tuple[np.ndarray, np.ndarray]:
+    if fitness_path is not None:
+        file = open(fitness_path, 'w')
+        file.write('generation,edge value,connectivity,deviation,front\n')
+        file.close()
+
     P = initialize_population(image, population_size, n_segments=n_segments)
     Q = new_population(P, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
-    population_front_assignment = np.ones(P.shape[0], dtype=numba.int16)
     for g in range(generations):
         print(f'Generation {g}')
         R = np.vstack((P, Q))
@@ -156,7 +163,14 @@ def nsga_ii(image: np.ndarray,
         Q_next = new_population(P_next, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
         P = P_next
         Q = Q_next
-        population_front_assignment = front_assignment[sorted_idx][:population_size]
+
+        if fitness_path is not None:
+            generation_vector = np.expand_dims(np.ones(R.shape[0], dtype=int)*g, axis=1)
+            front_vector = np.expand_dims(front_assignment, axis=1)
+            save_array = np.hstack((generation_vector, fitness, front_vector))
+            file = open(fitness_path, 'a')
+            np.savetxt(file, save_array, delimiter=',')
+            file.close()
 
     return R, front_assignment
 
