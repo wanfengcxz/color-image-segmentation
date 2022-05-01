@@ -29,7 +29,17 @@ def mutate(population: np.ndarray, p_mutate: float = 0.1) -> np.ndarray:
     return population
 
 @njit
-def new_population(population: np.ndarray) -> np.ndarray:
-    population = uniform_crossover(population)
-    population = mutate(population)
-    return population
+def new_population(population: np.ndarray, p_mutate: float = 0.1, p_crossover: float = 0.9, n_times: int = 1) -> np.ndarray:
+    children = population.copy()
+    np.random.shuffle(children)
+    children = uniform_crossover(children, p_crossover)
+    children = mutate(children, p_mutate)
+
+    for n in range(n_times-1):
+        child = population.copy()
+        np.random.shuffle(child)
+        child = uniform_crossover(child, p_crossover)
+        child = mutate(child, p_mutate)
+        children = np.vstack((children, child))
+
+    return children
