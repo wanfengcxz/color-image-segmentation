@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import numba
 import numpy as np
 
@@ -24,7 +26,9 @@ def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> 
 
 
 @njit
-def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
+def phenotype_fitness(phenotype: np.ndarray,
+                      image: np.ndarray,
+                      weights: Optional[np.ndarray] = None) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
@@ -45,12 +49,14 @@ def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
                     connectivity += (1/8)
             deviation += np.linalg.norm(node_rgb - segment_centroids[segment])
 
+    fitness = np.array([edge_value, connectivity, deviation])
     return np.array([edge_value, connectivity, deviation])
 
 
 @njit
 def genotype_fitness(genotype: np.ndarray, image: np.ndarray) -> np.ndarray:
-    return phenotype_fitness(to_phenotype(genotype, image.shape[0], image.shape[1]), image)
+    phenotype = to_phenotype(genotype, image.shape[0], image.shape[1])
+    return phenotype_fitness(phenotype, image)
 
 
 @njit
@@ -58,5 +64,12 @@ def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
     fitness = np.empty((population.shape[0], 3), dtype=numba.float64)
     for i, individual in enumerate(population):
         fitness[i] = genotype_fitness(individual, image)
+    return fitness
+
+@njit
+def weighted_population_fitness(population: np.ndarray, image: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    fitness = np.empty(population.shape[0], dtype=numba.float64)
+    for i, individual in enumerate(population):
+            fitness[i] = np.dot(genotype_fitness(individual, image), weights)
     return fitness
 

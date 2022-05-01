@@ -40,3 +40,26 @@ def get_neighbours(row: int, col: int, max_rows: int, max_cols: int, moore: bool
         if row < (max_rows - 1) and col > 0:  # 8
             neighbours.append((row + 1, col - 1))
     return neighbours
+
+
+# https://stackoverflow.com/questions/64135020/speed-up-random-weighted-choice-without-replacement-in-python
+@njit
+def numba_choice(population, weights, k):
+    # Get cumulative weights
+    wc = np.cumsum(weights)
+    # Total of weights
+    m = wc[-1]
+    # Arrays of sample and sampled indices
+    sample = np.empty((k, population.shape[1]), population.dtype)
+    # Sampling loop
+    i = 0
+    while i < k:
+        # Pick random weight value
+        r = m * np.random.rand()
+        # Get corresponding index
+        idx = np.searchsorted(wc, r, side='right')
+
+        # Save sampled value and index
+        sample[i] = population[idx]
+        i += 1
+    return sample
