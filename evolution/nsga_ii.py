@@ -1,12 +1,13 @@
 import numba
 import numpy as np
+from matplotlib import pyplot as plt
 from numba import njit
 from numba.typed import List, Dict
 
 
-from evolution.fitness import population_fitness, plot_normalized_fitness
+from evolution.fitness import population_fitness
 from evolution.genotype import initialize_genotype
-from evolution.phenotype import to_phenotype
+from evolution.phenotype import to_phenotype, visualize_type1
 from evolution.population import new_population
 from evolution.utils import int_list_type
 
@@ -26,6 +27,7 @@ def is_dominating(fitness1: np.ndarray, fitness2: np.ndarray) -> bool:
         if f1 > f2:
             return False
     return True
+
 
 @njit
 def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
@@ -77,6 +79,7 @@ def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
     print(fronts)
     return front_assignment
 
+
 @njit
 def crowding_distance(population_fitness: np.ndarray, front_assignment: np.ndarray) -> np.ndarray:
     distance_assignment = np.zeros(population_fitness.shape[0], dtype=numba.float64)
@@ -98,6 +101,7 @@ def crowding_distance(population_fitness: np.ndarray, front_assignment: np.ndarr
 
     return distance_assignment
 
+
 @njit
 def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> int:
     if front_assignment[i] < front_assignment[j]:
@@ -109,6 +113,7 @@ def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_as
             return i
         else:
             return j
+
 
 @njit
 def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np.ndarray:
@@ -129,23 +134,29 @@ def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np
 
 
 @njit
-def nsga_ii(image: np.ndarray, population_size: int, generations: int = 10, n_segments: int = 24) \
+def nsga_ii(image: np.ndarray,
+            n_segments: int = 24,
+            population_size: int = 10,
+            generations: int = 10,
+            p_mutate: float = 0.1,
+            p_crossover: float = 0.9,
+            n_times: int = 2) \
         -> tuple[np.ndarray, np.ndarray]:
     P = initialize_population(image, population_size, n_segments=n_segments)
-    Q = new_population(P)
+    Q = new_population(P, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
     population_front_assignment = np.ones(P.shape[0], dtype=numba.int16)
     for g in range(generations):
         print(f'Generation {g}')
-        R = np.concatenate((P, Q), axis=0)
+        R = np.vstack((P, Q))
         fitness = population_fitness(R, image)
         front_assignment = fast_non_dominated_sort(fitness)
         crowding_assignment = crowding_distance(fitness, front_assignment)
         sorted_idx = lexsort(front_assignment, crowding_assignment)
         P_next = R[sorted_idx][:population_size]
-        Q_next = new_population(P_next)
+        Q_next = new_population(P_next, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
         P = P_next
         Q = Q_next
         population_front_assignment = front_assignment[sorted_idx][:population_size]
 
-    return P, population_front_assignment
+    return R, front_assignment
 
