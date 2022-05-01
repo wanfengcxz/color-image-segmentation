@@ -18,6 +18,9 @@ class Individual:
             self.genotype = genotype
         # Segments dont need to be known initially
         self.segments = None
+        # ECD - Tuple containing edge_value, connectivity_value, deviation_value
+        self.ecd = None
+
         self.fitness = self.fitness_function()
 
     def fitness_function(self):
@@ -25,17 +28,19 @@ class Individual:
         # TODO: Only calculate fitness if needed?
         if self.segments is None:
             self.segments = separate_segments(self.genotype)
-        edge_value = calculate_edge_value(self.img_data, self.segments)
-        connectivity_value = calculate_connectivity(
-            self.segments, self.img_dim)
-        deviation = calculate_deviation(self.img_data, self.segments)
+        if self.ecd is None:
+            edge_value = calculate_edge_value(self.img_data, self.segments)
+            connectivity_value = calculate_connectivity(
+                self.segments, self.img_dim)
+            deviation = calculate_deviation(self.img_data, self.segments)
+            self.ecd = (edge_value, connectivity_value, deviation)
 
         # Weights
         edge_weight = self.weights[0]
         connectivity_weight = self.weights[1]
         deviation_weight = self.weights[2]
 
-        return edge_weight*edge_value - connectivity_weight*connectivity_value - deviation_weight*deviation
+        return edge_weight*self.ecd[0] - connectivity_weight*self.ecd[1] - deviation_weight*self.ecd[2]
 
     def get_segments(self):
         """ Get segments """
