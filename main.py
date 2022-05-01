@@ -1,7 +1,9 @@
 import argparse
 import os
+import datetime
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from evolution.algorithms.nsga_ii import nsga_ii
 from evolution.algorithms.sga import sga
@@ -24,13 +26,18 @@ parser.add_argument('-w', '--weights', help='Weights used for sga', type=list, d
 
 args = parser.parse_args()
 
-image = read_image(args.image_path)
-output_dir = os.path.join(args.output_dir, args.algorithm)
+timestamp = datetime.datetime.now()
+
+
+output_dir = os.path.join(args.output_dir, args.algorithm, timestamp.strftime('%d-%H%M'))
 
 type1_dir = os.path.join(output_dir, 'segmentations', 'type1')
 type2_dir = os.path.join(output_dir, 'segmentations', 'type2')
 os.makedirs(type1_dir, exist_ok=True)
 os.makedirs(type2_dir, exist_ok=True)
+
+image = read_image(args.image_path)
+plt.imsave(os.path.join(output_dir, 'image.png'), image)
 
 if args.algorithm == 'nsga':
     population, front_assignment = nsga_ii(image=image,
