@@ -19,8 +19,8 @@ def visualize_genotype(genotype: np.ndarray, graph_shape: tuple[int, int], image
             row_diff, col_diff = to_diff(genotype[row, col])
             from_node = f'{row}-{col}'
             to_node = f'{row + row_diff}-{col + col_diff}'
-            G.add_node(from_node, pos=(col, max_rows - row))
-            G.add_node(to_node, pos=(col + col_diff, max_rows - row - row_diff))
+            G.add_node(from_node, pos=(col, max_rows - row - 1))
+            G.add_node(to_node, pos=(col + col_diff, max_rows - row - row_diff - 1))
             G.add_edge(from_node, to_node)
 
     pos = nx.get_node_attributes(G, 'pos')
@@ -66,7 +66,7 @@ def to_contour_segmentation_v2(phenotype: np.ndarray) -> np.ndarray:
     image[max_rows - 1, :] = 0
     image[:, 0] = 0
     image[:, max_cols - 1] = 0
-    for i in range(phenotype.max() - 1):
+    for i in range(phenotype.max()):
         segmentation_nodes = zip(*np.where(phenotype == i))
         for node in segmentation_nodes:
             if node[0] == 0 or node[0] == max_rows - 1 or node[1] == 0 or node[1] == max_cols - 1:

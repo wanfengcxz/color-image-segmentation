@@ -10,7 +10,7 @@ from utils import read_image, unique_pixels
 from visualization.fitness import visualize_fitness_history
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-o', '--output_dir', help='path/to/output/dir', type=str, default='output/nsga/02-1407')
+parser.add_argument('-o', '--output_dir', help='path/to/output/dir', type=str, default='output/nsga/02-195653')
 parser.add_argument('-n', '--n_display', help='Number of images to display', type=int, default=5)
 parser.add_argument('-f', '--display_fitness', action='store_true', help='Whether to visualize pareto front')
 args = parser.parse_args()
@@ -40,8 +40,6 @@ evaluated = 'PRI.csv' in os.listdir(args.output_dir)
 if evaluated:
     pri = pd.read_csv(os.path.join(args.output_dir, 'PRI.csv'), header=None).to_numpy()
     df['PRI'] = pri
-
-print(df.isna)
 
 n_display = min(args.n_display, df.shape[0])
 

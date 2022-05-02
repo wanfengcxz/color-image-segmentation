@@ -18,10 +18,10 @@ parser.add_argument('-i', '--image_path', help='path/to/image', type=str, defaul
 parser.add_argument('-gt', '--ground_truth', help='path/to/ground/truth/dir', type=str, default=None)
 parser.add_argument('-a', '--algorithm', help='Type of algorithm. Can be {nsga, sga}', type=str, default='nsga')
 parser.add_argument('-o', '--output_dir', help='path/to/output/directory', type=str, default='output')
-parser.add_argument('-ns', '--n_segments', help='Number of segments to initialize population with', type=int, default=4)
+parser.add_argument('-ns', '--n_segments', help='Number of segments to initialize population with', type=int, default=1)
 parser.add_argument('-n', '--population_size', help='Size of population', type=int, default=50)
 parser.add_argument('-g', '--generations', help='Number of generations to run for', type=int, default=50)
-parser.add_argument('-pc', '--p_crossover', help='Crossover probability', type=float, default=0.7)
+parser.add_argument('-pc', '--p_crossover', help='Crossover probability', type=float, default=0.8)
 parser.add_argument('-pm', '--p_mutate', help='Mutation probability', type=float, default=0.2)
 parser.add_argument('-w', '--weights', help='Weights used for sga', type=list, default=[1.0, 1.0, 1.0])
 
