@@ -67,7 +67,7 @@ for n in range(n_display):
     axes[2][n].imshow(color_image)
     text = f'Edge Value: {df.iloc[n]["edge_value"]:.2f}\n' \
            f'Connectivitiy: {df.iloc[n]["connectivity"]:.2f}\n' \
-           f'Deviation: {df.iloc[n]["deviation"]:.2f}\n' \
+           f'Deviation: {df.iloc[n]["deviation"]:.2f}\n\n' \
            f'Segments: {unique_pixels(color_image)}\n'
 
     if evaluated:

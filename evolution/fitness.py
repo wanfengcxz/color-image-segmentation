@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 import numba
 import numpy as np
 
@@ -27,8 +25,7 @@ def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> 
 
 @njit
 def phenotype_fitness(phenotype: np.ndarray,
-                      image: np.ndarray,
-                      weights: Optional[np.ndarray] = None) -> np.ndarray:
+                      image: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
@@ -49,7 +46,6 @@ def phenotype_fitness(phenotype: np.ndarray,
                     connectivity += (1/8)
             deviation += np.linalg.norm(node_rgb - segment_centroids[segment])
 
-    fitness = np.array([edge_value, connectivity, deviation])
     return np.array([edge_value, connectivity, deviation])
 
 
