@@ -46,7 +46,7 @@ def initialize_genotype(image: np.ndarray, n_segments: int = 1, moore: bool = Tr
 
     if n_segments > 1:
         highest_weights = np.argsort(genotype_weights)
-        idxs = np.random.choice(highest_weights[-n_total//2:], n_segments-1)
+        idxs = np.random.choice(highest_weights[-n_total//2:], np.random.randint(2, n_segments-1))
         genotype[idxs] = Gene.none.value
 
     return genotype
