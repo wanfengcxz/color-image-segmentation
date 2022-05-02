@@ -11,7 +11,7 @@ from evolution.fitness import population_fitness
 from evolution.individual.phenotype import to_phenotype
 from utils import read_image
 from visualization.fitness import plot_fitness
-from visualization.individual import save_type2
+from visualization.individual import save_type2, save_type1, to_contour_segmentation_v2, to_color_segmentation
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--image_path', help='path/to/image', type=str, default='training_images/86016/Test image.jpg')
@@ -33,8 +33,10 @@ output_dir = os.path.join(args.output_dir, args.algorithm, timestamp.strftime('%
 
 type1_dir = os.path.join(output_dir, 'segmentations', 'type1')
 type2_dir = os.path.join(output_dir, 'segmentations', 'type2')
+color_dir = os.path.join(output_dir, 'segmentations', 'color')
 os.makedirs(type1_dir, exist_ok=True)
 os.makedirs(type2_dir, exist_ok=True)
+os.makedirs(color_dir, exist_ok=True)
 
 image = read_image(args.image_path)
 plt.imsave(os.path.join(output_dir, 'image.png'), image)
@@ -50,7 +52,10 @@ if args.algorithm == 'nsga':
 
     for i, individual in enumerate(population[np.where(front_assignment == 1)]):
         phenotype = to_phenotype(individual, image.shape[0], image.shape[1])
-        save_type2(phenotype, os.path.join(type2_dir, f'pareto_{i}.png'))
+        segmentation = to_contour_segmentation_v2(phenotype)
+        save_type1(segmentation, image, os.path.join(type1_dir, f'pareto_{i}.png'), convert=False)
+        save_type2(segmentation, os.path.join(type2_dir, f'pareto_{i}.png'), convert=False)
+        plt.imsave(os.path.join(color_dir, f'pareto_{i}.png'), to_color_segmentation(phenotype))
 
 elif args.algorithm == 'sga':
     population = sga(image=image,
@@ -63,5 +68,8 @@ elif args.algorithm == 'sga':
                      )
 
     phenotype = to_phenotype(population[0], image.shape[0], image.shape[1])
-    save_type2(phenotype, os.path.join(type2_dir, 'best.png'))
+    segmentation = to_contour_segmentation_v2(phenotype)
+    save_type1(segmentation, image, os.path.join(type1_dir, f'best.png'), convert=False)
+    save_type2(segmentation, os.path.join(type2_dir, 'best.png'), convert=False)
+    plt.imsave(os.path.join(color_dir, f'best.png'), to_color_segmentation(phenotype))
 

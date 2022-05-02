@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 import networkx as nx
@@ -44,6 +45,7 @@ def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     image = np.ones(phenotype.shape, dtype=float)
+    s = time.perf_counter()
     for row in range(max_rows):
         for col in range(max_cols):
             if row == 0 or row == max_rows - 1 or col == 0 or col == max_cols - 1:
@@ -54,12 +56,36 @@ def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
             for neighbour in neighbours:
                 if phenotype[node] != phenotype[neighbour]:
                      image[row, col] = 0.0
+    print(time.perf_counter() - s)
+    return image
+
+def to_contour_segmentation_v2(phenotype: np.ndarray) -> np.ndarray:
+    max_rows = phenotype.shape[0]
+    max_cols = phenotype.shape[1]
+    image = np.ones(phenotype.shape, dtype=int)
+
+    image[0, :] = 0
+    image[max_rows - 1, :] = 0
+    image[:, 0] = 0
+    image[:, max_cols - 1] = 0
+    s = time.perf_counter()
+    for i in range(phenotype.max() - 1):
+        segmentation_nodes = zip(*np.where(phenotype == i))
+        for node in segmentation_nodes:
+            if node[0] == 0 or node[0] == max_rows - 1 or node[1] == 0 or node[1] == max_cols - 1:
+                continue
+            neighbours = get_neighbours(node[0], node[1], max_rows, max_cols)
+            for neighbour in neighbours:
+                if phenotype[node] != phenotype[neighbour] and phenotype[neighbour] > i:
+                    image[node[0], node[1]] = 0
+                    break
+    print(time.perf_counter() - s)
     return image
 
 
 def visualize_type1(phenotype: np.ndarray, image: np.ndarray, ax: Optional[plt.axes] = None) -> None:
     type1 = image.copy()
-    segmentation = to_contour_segmentation(phenotype)
+    segmentation = to_contour_segmentation_v2(phenotype)
     type1[np.where(segmentation == 0)] = [0.0, 1.0, 0.0]
     if ax is None:
         plt.imshow(type1)
@@ -69,7 +95,7 @@ def visualize_type1(phenotype: np.ndarray, image: np.ndarray, ax: Optional[plt.a
 
 
 def visualize_type2(phenotype: np.ndarray, ax: Optional[plt.axes] = None) -> None:
-    segmentation = to_contour_segmentation(phenotype)
+    segmentation = to_contour_segmentation_v2(phenotype)
     if ax is None:
         plt.imshow(segmentation, cmap='gray')
         plt.show()
@@ -77,14 +103,20 @@ def visualize_type2(phenotype: np.ndarray, ax: Optional[plt.axes] = None) -> Non
         ax.imshow(segmentation)
 
 
-def visualize_phenotype(phenotype: np.ndarray, ax: Optional[plt.Axes] = None) -> None:
-    image = to_contour_segmentation(phenotype)
-    if ax is None:
-        plt.imshow(image)
-        plt.show()
+def save_type1(arr: np.ndarray, image: np.ndarray, path: str, convert: bool = True) -> None:
+    type1 = image.copy()
+    if convert:
+        segmentation = to_contour_segmentation_v2(arr)
     else:
-        ax.imshow(image)
+        segmentation = arr
+    type1[np.where(segmentation == 0)] = [0.0, 1.0, 0.0]
+    plt.imsave(path, type1)
 
-def save_type2(phenotype: np.ndarray, path: str) -> None:
-    segmentation = to_contour_segmentation(phenotype)
+
+def save_type2(arr: np.ndarray, path: str, convert: bool = True) -> None:
+    if convert:
+        segmentation = to_contour_segmentation_v2(arr)
+    else:
+        segmentation = arr
+
     plt.imsave(path, segmentation, cmap='gray')
