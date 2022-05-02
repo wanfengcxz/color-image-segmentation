@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from utils import read_image
+from utils import read_image, unique_pixels
 from visualization.fitness import visualize_fitness_history
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-o', '--output_dir', help='path/to/output/dir', type=str, default='output/nsga/01-2136')
+parser.add_argument('-o', '--output_dir', help='path/to/output/dir', type=str, default='output/nsga/02-1407')
 parser.add_argument('-n', '--n_display', help='Number of images to display', type=int, default=5)
 parser.add_argument('-f', '--display_fitness', action='store_true', help='Whether to visualize pareto front')
 args = parser.parse_args()
@@ -35,6 +35,14 @@ df['type1'] = np.array(type1_images)
 df['type2'] = np.array(type2_images)
 df['color'] = np.array(color_images)
 
+evaluated = 'PRI.csv' in os.listdir(args.output_dir)
+
+if evaluated:
+    pri = pd.read_csv(os.path.join(args.output_dir, 'PRI.csv'), header=None).to_numpy()
+    df['PRI'] = pri
+
+print(df.isna)
+
 n_display = min(args.n_display, df.shape[0])
 
 fig, axes = plt.subplots(4, n_display, squeeze=False, figsize=(14, 7))
@@ -44,13 +52,27 @@ axes[1][0].set_ylabel('Type 2')
 axes[2][0].set_ylabel('Color')
 axes[3][0].set_ylabel('Fitness')
 
-for n, idx in enumerate(np.random.choice(df.shape[0], n_display)):
-    axes[0][n].imshow(read_image(os.path.join(type1_dir, df.iloc[idx]['type1'])))
-    axes[1][n].imshow(read_image(os.path.join(type2_dir, df.iloc[idx]['type2'])))
-    axes[2][n].imshow(read_image(os.path.join(color_dir, df.iloc[idx]['color'])))
-    text = f'Edge Value: {df.iloc[idx]["edge value"]:.2f}\n' \
-           f'Connectivitiy: {df.iloc[idx]["connectivity"]:.2f}\n' \
-           f'Deviation: {df.iloc[idx]["deviation"]:.2f}\n'
+df = df.sample(frac=1).reset_index(drop=True)
+
+if evaluated:
+    best_idx = df['PRI'].idxmax()
+    temp = df.iloc[0].copy()
+    df.iloc[0] = df.iloc[best_idx].copy()
+    df.iloc[best_idx] = temp
+
+for n in range(n_display):
+    color_image = read_image(os.path.join(color_dir, df.iloc[n]['color']))
+    axes[0][n].imshow(read_image(os.path.join(type1_dir, df.iloc[n]['type1'])))
+    axes[1][n].imshow(read_image(os.path.join(type2_dir, df.iloc[n]['type2'])))
+    axes[2][n].imshow(color_image)
+    text = f'Edge Value: {df.iloc[n]["edge_value"]:.2f}\n' \
+           f'Connectivitiy: {df.iloc[n]["connectivity"]:.2f}\n' \
+           f'Deviation: {df.iloc[n]["deviation"]:.2f}\n' \
+           f'Segments: {unique_pixels(color_image)}\n'
+
+    if evaluated:
+        text += f'PRI: {df.iloc[n]["PRI"]:.2f}%'
+
     axes[3][n].axis('off')
     axes[3][n].text(0.2, 0.5, text)
 

@@ -41,7 +41,6 @@ def sga(image: np.ndarray,
         population = new_population(population, p_mutate=p_mutate, p_crossover=p_crossover)
         np.random.shuffle(population)
         population[:n_elites] = elites
-        print('Fittest: ', fitness[fittest[0]])
 
     return population
 

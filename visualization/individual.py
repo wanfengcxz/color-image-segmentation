@@ -45,7 +45,6 @@ def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     image = np.ones(phenotype.shape, dtype=float)
-    s = time.perf_counter()
     for row in range(max_rows):
         for col in range(max_cols):
             if row == 0 or row == max_rows - 1 or col == 0 or col == max_cols - 1:
@@ -56,7 +55,6 @@ def to_contour_segmentation(phenotype: np.ndarray) -> np.ndarray:
             for neighbour in neighbours:
                 if phenotype[node] != phenotype[neighbour]:
                      image[row, col] = 0.0
-    print(time.perf_counter() - s)
     return image
 
 def to_contour_segmentation_v2(phenotype: np.ndarray) -> np.ndarray:
@@ -68,7 +66,6 @@ def to_contour_segmentation_v2(phenotype: np.ndarray) -> np.ndarray:
     image[max_rows - 1, :] = 0
     image[:, 0] = 0
     image[:, max_cols - 1] = 0
-    s = time.perf_counter()
     for i in range(phenotype.max() - 1):
         segmentation_nodes = zip(*np.where(phenotype == i))
         for node in segmentation_nodes:
@@ -79,7 +76,6 @@ def to_contour_segmentation_v2(phenotype: np.ndarray) -> np.ndarray:
                 if phenotype[node] != phenotype[neighbour] and phenotype[neighbour] > i:
                     image[node[0], node[1]] = 0
                     break
-    print(time.perf_counter() - s)
     return image
 
 

@@ -135,7 +135,7 @@ def nsga_ii(image: np.ndarray,
         -> tuple[np.ndarray, np.ndarray]:
     if fitness_path is not None:
         file = open(fitness_path, 'w')
-        file.write('generation,edge value,connectivity,deviation,front\n')
+        file.write('generation,edge_value,connectivity,deviation,front\n')
         file.close()
 
     P = initialize_population(image, population_size, n_segments=n_segments)

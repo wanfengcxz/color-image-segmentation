@@ -54,13 +54,13 @@ def visualize_fitness_history(fitness_path: str):
         ax.set_title(f'Generation {generation}')
         data = df[df['generation'] == generation]
 
-        s3d._offsets3d = (data['edge value'].values, data['connectivity'].values, data['deviation'].values)
+        s3d._offsets3d = (data['edge_value'].values, data['connectivity'].values, data['deviation'].values)
         s3d.set_array(data['front'])
 
     ax.set_xlabel('Edge Value')
     ax.set_ylabel('Connectivity')
     ax.set_zlabel('Deviation')
-    ax.set_xlim(df['edge value'].min(), df['edge value'].max())
+    ax.set_xlim(df['edge_value'].min(), df['edge_value'].max())
     ax.set_ylim(df['connectivity'].min(), df['connectivity'].max())
     ax.set_zlim(df['deviation'].min(), df['deviation'].max())
 

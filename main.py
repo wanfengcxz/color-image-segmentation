@@ -1,20 +1,21 @@
 import argparse
 import os
 import datetime
+import shutil
 
 import numpy as np
 from matplotlib import pyplot as plt
 
+from evaluator.run import eval_files
 from evolution.algorithms.nsga_ii import nsga_ii
 from evolution.algorithms.sga import sga
-from evolution.fitness import population_fitness
 from evolution.individual.phenotype import to_phenotype
 from utils import read_image
-from visualization.fitness import plot_fitness
 from visualization.individual import save_type2, save_type1, to_contour_segmentation_v2, to_color_segmentation
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--image_path', help='path/to/image', type=str, default='training_images/86016/Test image.jpg')
+parser.add_argument('-i', '--image_path', help='path/to/image', type=str, default='training_images/176039/Test image.jpg')
+parser.add_argument('-gt', '--ground_truth', help='path/to/ground/truth/dir', type=str, default=None)
 parser.add_argument('-a', '--algorithm', help='Type of algorithm. Can be {nsga, sga}', type=str, default='nsga')
 parser.add_argument('-o', '--output_dir', help='path/to/output/directory', type=str, default='output')
 parser.add_argument('-ns', '--n_segments', help='Number of segments to initialize population with', type=int, default=4)
@@ -27,7 +28,6 @@ parser.add_argument('-w', '--weights', help='Weights used for sga', type=list, d
 args = parser.parse_args()
 
 timestamp = datetime.datetime.now()
-
 
 output_dir = os.path.join(args.output_dir, args.algorithm, timestamp.strftime('%d-%H%M'))
 
@@ -72,4 +72,14 @@ elif args.algorithm == 'sga':
     save_type1(segmentation, image, os.path.join(type1_dir, f'best.png'), convert=False)
     save_type2(segmentation, os.path.join(type2_dir, 'best.png'), convert=False)
     plt.imsave(os.path.join(color_dir, f'best.png'), to_color_segmentation(phenotype))
+
+if args.ground_truth is not None:
+    gt_dir = os.path.join(output_dir, 'gts')
+    os.makedirs(gt_dir, exist_ok=True)
+    for gt in os.listdir(args.ground_truth):
+        shutil.copy(os.path.join(args.ground_truth, gt), gt_dir)
+
+    results = eval_files(gt_dir, type2_dir)
+    with open(os.path.join(output_dir, 'PRI.csv'), 'w') as file:
+        np.savetxt(file, results)
 

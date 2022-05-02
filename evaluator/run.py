@@ -1,6 +1,9 @@
 import os
-from fileReader import readImage
-from fileReader import readTextFile
+
+import numpy as np
+
+from evaluator.fileReader import readImage
+from evaluator.fileReader import readTextFile
 import re
 
 path = os.path.dirname(os.path.abspath(__file__))
@@ -69,9 +72,10 @@ def comparePics(studentPic, optimalSegmentPic):
 	return counter/max(numberOfBlackPixels,1)
 
 
-def main():
-	optimalFiles = readFilesFromFolder(optimalFolder)
-	studentFiles = readFilesFromFolder(studentFolder)
+def eval_files(optimal=optimalFolder, student=studentFolder):
+	optimalFiles = readFilesFromFolder(optimal)
+	studentFiles = readFilesFromFolder(student)
+	results = np.zeros(len(studentFiles))
 	totalScore = 0
 	for i, student in enumerate(studentFiles):
 		highestScore = 0
@@ -84,8 +88,11 @@ def main():
 			highestScore = max(highestScore,result)
 		totalScore += highestScore
 		a = highestScore*100
+		results[i] = a
 		print(f"{i} Score: %.2f"% a + "%")
 	a = totalScore/len(studentFiles)*100
 	print("Total Average Score: %.2f" % a + "%")
+	return results
 
-main()
+if __name__ == '__main__':
+	eval_files()
