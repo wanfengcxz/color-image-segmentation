@@ -6,7 +6,7 @@ import numpy as np
 from numba import jit, prange, njit
 from sklearn import neighbors
 
-from custom_types import ImageDimensions
+from custom_types import Genotype, ImageDimensions
 
 
 @njit
@@ -199,6 +199,7 @@ def euclidean_distance(p1_rgb: Tuple[int, int, int], p2_rgb: Tuple[int, int, int
 
 @njit
 def prims_algorithm(img_data):
+    """ Create a minimal spanning tree using prim's algorithm """
     img_dim = ImageDimensions(img_data.shape[0], img_data.shape[1])
     genotype = np.zeros(img_dim.rows*img_dim.cols, dtype=np.int32)
     visited_nodes = set()
@@ -226,6 +227,54 @@ def prims_algorithm(img_data):
         genotype[destination_index] = starting_index
 
         current_node = destination_index
+    return genotype
+
+
+def dissolve_segment(img_data, original_genotype=None, segments=None, segment_id=None) -> Genotype:
+    img_dim = ImageDimensions(img_data.shape[0], img_data.shape[1])
+    genotype = np.zeros(img_dim.rows*img_dim.cols, dtype=np.int32)
+    visited_nodes = set()
+
+    index_of_segment_pixels = [
+        i for i, x in enumerate(segments) if x == segment_id]
+    current_node = random.choice(index_of_segment_pixels)
+
+    potential_edges = [(0.0, 0, 0) for x in range(0)]
+
+    while len(visited_nodes) < len(genotype):
+        if current_node not in visited_nodes:
+            visited_nodes.add(current_node)
+            neighbours = get_flattened_neighbours(current_node, img_dim)
+            for neighbour in neighbours:
+                if segments[neighbour] != segment_id and segments[current_node] != segment_id:
+                    continue
+                node_rgb = img_data[expanded_index(current_node, img_dim)]
+                destination_rgb = img_data[expanded_index(neighbour, img_dim)]
+                rgb_distance = euclidean_distance(node_rgb, destination_rgb)
+                if segments[neighbour] == segment_id:
+                    # Incentivise the edges that are in different segment
+                    rgb_distance = rgb_distance * 2
+                heappush(potential_edges,
+                         (rgb_distance, current_node, neighbour))
+        if len(potential_edges) == 0:
+            indices = [i for i, x in enumerate(
+                segments) if x == segment_id and i not in visited_nodes]
+            if len(indices) == 0:
+                break
+            current_node = random.choice(indices)
+            continue
+        _, starting_index, destination_index = heappop(potential_edges)
+
+        while destination_index in visited_nodes and len(potential_edges) > 0:
+            _, starting_index, destination_index = heappop(potential_edges)
+
+        genotype[destination_index] = starting_index
+
+        current_node = destination_index
+
+    for i in range(len(genotype)):
+        if segments[i] != segment_id:
+            genotype[i] = original_genotype[i]
     return genotype
 
 
@@ -341,3 +390,91 @@ def calculate_deviation(img_data, segment_ids) -> float:
         deviation += euclidean_distance(node_rgb, centroid)
 
     return deviation
+
+
+@njit
+def dominates(ind1_ev, ind1_conn, ind1_dev, ind2_ev, ind2_conn, ind2_dev) -> bool:
+    """ Check if ECD of Individual 1 dominates ECD of Individual 2 """
+    return ind1_ev > ind2_ev and ind1_conn > ind2_conn and ind1_dev > ind2_dev
+
+
+@jit
+def get_top_ranks(individuals, segment_constraints):
+    """ Get the list of individuals in the top rank of the provided list of individuals """
+
+    top_ranks = [0 for i in range(0)]
+    remaining = [0 for i in range(0)]
+    for i in range(len(individuals)):
+        is_dominated = False
+        for j in range(i, len(individuals)):
+            if i == j:
+                continue
+            if is_dominated:
+                continue
+            ind1_ev, ind1_conn, ind1_dev = individuals[i].get_ecd_values()
+            ind2_ev, ind2_conn, ind2_dev = individuals[j].get_ecd_values()
+            if dominates(ind2_ev, ind2_conn, ind2_dev, ind1_ev, ind1_conn, ind1_dev):
+                # Individual i is dominated by someone, so it cannot be of top rank
+                is_dominated = True
+                remaining.append(i)
+                continue
+        if not is_dominated:
+            top_ranks.append(i)
+
+    return top_ranks, remaining
+
+
+def ecd_distance(individual1, individual2) -> float:
+    """ Get the ecd distance between two individuals """
+    ecd1 = individual1.get_ecd_values()
+    ecd2 = individual2.get_ecd_values()
+    return abs(ecd1[0] - ecd2[0]) + abs(ecd1[1] - ecd2[1]) + abs(ecd1[2] - ecd2[2])
+
+
+def get_crowding_distance(individual, individuals) -> float:
+    """ Get the crowding distance between two individuals """
+    crowding_distance = 0.0
+    ecb = individual.get_ecd_values()
+
+    edge_value_pair = (-np.inf, np.inf)
+    connectivity_pair = (-np.inf, np.inf)
+    deviation_pair = (-np.inf, np.inf)
+
+    for other in individuals:
+        if individual == other:
+            continue
+        other_edge_value, other_connectivity_value, other_deviation = other.get_ecd_values()
+        if other_edge_value <= ecb[0] and other_edge_value > edge_value_pair[0]:
+            edge_value_pair = (other_edge_value, edge_value_pair[1])
+        elif other_edge_value >= ecb[0] and other_edge_value < edge_value_pair[1]:
+            edge_value_pair = (edge_value_pair[0], other_edge_value)
+
+        if other_connectivity_value <= ecb[1] and other_connectivity_value > connectivity_pair[0]:
+            connectivity_pair = (other_connectivity_value,
+                                 connectivity_pair[1])
+        elif other_connectivity_value >= ecb[1] and other_connectivity_value < connectivity_pair[1]:
+            connectivity_pair = (
+                connectivity_pair[0], other_connectivity_value)
+
+        if other_deviation <= ecb[2] and other_deviation > deviation_pair[0]:
+            deviation_pair = (other_deviation, deviation_pair[1])
+        elif other_deviation >= ecb[2] and other_deviation < deviation_pair[1]:
+            deviation_pair = (deviation_pair[0], other_deviation)
+
+    crowding_distance = abs(edge_value_pair[0] - edge_value_pair[1]) + abs(
+        connectivity_pair[0] - connectivity_pair[1]) + abs(deviation_pair[0] - deviation_pair[1])
+    return crowding_distance
+
+
+def sort_based_on_crowding_distance(individuals):
+    """ Sort based on the crowding distance """
+
+    for individual in individuals:
+
+        individual.crowding_distance = get_crowding_distance(
+            individual, individuals)
+
+    sorted_individuals = sorted(
+        individuals, key=lambda x: x.crowding_distance, reverse=True)
+
+    return sorted_individuals
