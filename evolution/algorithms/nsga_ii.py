@@ -13,6 +13,8 @@ from evolution.utils import int_list_type
 
 @njit
 def is_dominating(fitness1: np.ndarray, fitness2: np.ndarray) -> bool:
+    if np.array_equal(fitness1, fitness2):
+        return False
     for f1, f2 in zip(fitness1, fitness2):
         if f1 > f2:
             return False
@@ -66,7 +68,6 @@ def fast_non_dominated_sort(pop_fitness: np.ndarray) -> np.ndarray:
         fronts[i] = new_front
         for ind in new_front:
             front_assignment[ind] = i
-    print(fronts)
     return front_assignment
 
 
@@ -93,19 +94,6 @@ def crowding_distance(population_fitness: np.ndarray, front_assignment: np.ndarr
 
 
 @njit
-def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> int:
-    if front_assignment[i] < front_assignment[j]:
-        return i
-    elif front_assignment[j] < front_assignment[i]:
-        return j
-    else:
-        if crowding_assignment[i] > crowding_assignment[j]:
-            return i
-        else:
-            return j
-
-
-@njit
 def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np.ndarray:
     crowding_assignment = -crowding_assignment
     lex_sorted = np.zeros(front_assignment.shape[0], dtype=numba.int16)
@@ -122,6 +110,28 @@ def lexsort(front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> np
 
     return lex_sorted
 
+
+@njit
+def crowded_comparison(i: int, j: int, front_assignment: np.ndarray, crowding_assignment: np.ndarray) -> int:
+    if front_assignment[i] < front_assignment[j]:
+        return i
+    elif front_assignment[j] < front_assignment[i]:
+        return j
+    else:
+        if crowding_assignment[i] > crowding_assignment[j]:
+            return i
+        else:
+            return j
+
+
+@njit
+def tournament_selection(population: np.ndarray, front_assignment: np.ndarray, crowding_assignment: np.ndarray):
+    parents = np.empty(population.shape)
+    for p in range(population.shape[0]):
+        i = np.random.randint(population.shape[0])
+        j = np.random.randint(population.shape[0])
+        parents[p] = population[crowded_comparison(i, j, front_assignment, crowding_assignment)]
+    return parents
 
 @jit
 def nsga_ii(image: np.ndarray,
@@ -148,7 +158,10 @@ def nsga_ii(image: np.ndarray,
         crowding_assignment = crowding_distance(fitness, front_assignment)
         sorted_idx = lexsort(front_assignment, crowding_assignment)
         P_next = R[sorted_idx][:population_size]
-        Q_next = new_population(P_next, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
+        P_front_assignment = front_assignment[sorted_idx][:population_size]
+        P_crowding_assignment = crowding_assignment[sorted_idx][:population_size]
+        parents = tournament_selection(P_next, P_front_assignment, P_crowding_assignment)
+        Q_next = new_population(parents, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
         P = P_next
         Q = Q_next
 
