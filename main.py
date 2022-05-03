@@ -8,7 +8,7 @@ from utilities import save_segmented_img
 import optuna
 
 
-def genetic_algorithm(img_data, segment_constraints, population_size: int, num_generations: int = 40, weights=(0.33, 0.33, 0.33), debug=False, save: bool = False, nsga: bool = False) -> Individual:
+def genetic_algorithm(img_data, segment_constraints, population_size: int, num_generations: int = 40, weights=(0.33, 0.33, 0.33), debug=False, save: bool = False, nsga: bool = False) -> Population:
 
     # Initialize population
     pop = Population(img_data, population_size,
@@ -25,9 +25,9 @@ def genetic_algorithm(img_data, segment_constraints, population_size: int, num_g
         if debug:
             tqdm.write(str(pop.get_avg_fitness()))
         if nsga:
-            pop.nsga2_evolve()
+            pop.nsga2_evolve(i == num_generations - 1)
         else:
-            pop.generate_new_population()
+            pop.generate_new_population(i == num_generations - 1)
 
         if save:
             b = pop.get_best_individual()
@@ -43,7 +43,7 @@ def genetic_algorithm(img_data, segment_constraints, population_size: int, num_g
                                img_data, pop.individuals[i].get_segments(), 2)
 
     # Get best individual solution
-    return pop.get_best_individual()
+    return pop
 
 
 def check_PRI_value(img_data, segment_ids):
@@ -79,10 +79,10 @@ if __name__ == "__main__":
     # Variables
     segment_constraints = {
         "min": 1,
-        "max": 10
+        "max": 30
     }
-    # image_no = "86016"
-    image_no = "118035"
+    image_no = "image4"
+    # image_no = "118035"
     # image_no = "147091"
     # image_no = "176035"
 
@@ -98,17 +98,21 @@ if __name__ == "__main__":
     #            'connectivity_weight': 0.2084033056268151, 'deviation_weight': 0.00048472170184982}
     weights_tuple = (
         weights['edge_weight'], weights['connectivity_weight'], weights['deviation_weight'])
-
-    # Run GA
-    solution = genetic_algorithm(
-        img_data, segment_constraints=segment_constraints, population_size=100, num_generations=40, weights=weights_tuple, save=True, nsga=True)
-
     # study = optuna.create_study(direction='maximize')
     # study.optimize(objective, n_trials=100)
 
-    # study.best_params  # E.g. {'x': 2.002108042}
+    nsga = False
+
+    # Run GA
+    solutions = genetic_algorithm(
+        img_data, segment_constraints=segment_constraints, population_size=100, num_generations=30, weights=weights_tuple, save=True, nsga=nsga)
+
+    b = solutions.get_best_individual()
 
     save_segmented_img("training_images/"+image_no+"/solutions/",
-                       img_data, solution.get_segments(), 1)
+                       img_data, b.get_segments(), 1)
     save_segmented_img("training_images/"+image_no+"/solutions/",
-                       img_data, solution.get_segments(), 2)
+                       img_data, b.get_segments(), 2)
+
+    if nsga:
+        solutions.population_summary()

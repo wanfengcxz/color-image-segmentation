@@ -49,7 +49,7 @@ class Population:
         tournament = random.sample(self.individuals, tournament_size)
         return min(tournament, key=lambda ind: ind.rank)
 
-    def generate_new_population(self):
+    def generate_new_population(self, final=True):
         """ Generate new population through crossover and mutation """
         image_dimensions = ImageDimensions(
             self.img_data.shape[0], self.img_data.shape[1])
@@ -81,16 +81,27 @@ class Population:
         offsprings.sort(key=lambda x: x.fitness_function(), reverse=True)
         offsprings = offsprings[:self.population_size - num_elite]
 
-        # Sort self.individuals by fitness and keep the best individuals
-        self.individuals.sort(key=lambda x: x.fitness_function(), reverse=True)
-        for i in range(num_elite):
-            offsprings.append(self.individuals[i])
+        if final:
+            offsprings.extend(self.individuals)
+            for ind in offsprings:
+                if not self.satisfies_constraints(ind):
+                    offsprings.remove(ind)
+            offsprings.sort(key=lambda x: x.fitness_function(), reverse=True)
+            offsprings = offsprings[:self.population_size]
+            self.offsprings = offsprings
+            return
+        else:
+            # Sort self.individuals by fitness and keep the best individuals
+            self.individuals.sort(
+                key=lambda x: x.fitness_function(), reverse=True)
+            for i in range(num_elite):
+                offsprings.append(self.individuals[i])
 
-        if len(offsprings) != self.population_size:
-            raise Exception('Population size is not correct')
-        self.individuals = offsprings
+            if len(offsprings) != self.population_size:
+                raise Exception('Population size is not correct')
+            self.individuals = offsprings
 
-    def nsga2_evolve(self):
+    def nsga2_evolve(self, final=True):
         """ Evolve using NSGA 2 algorithm """
         image_dimensions = ImageDimensions(
             self.img_data.shape[0], self.img_data.shape[1])
@@ -131,6 +142,8 @@ class Population:
 
             for i in range(len(remaining)):
                 if i in nondominated_inds_index:
+                    if final and not self.satisfies_constraints(remaining[i]):
+                        continue
                     nondominated_inds.append(remaining[i])
                 else:
                     new_remaining.append(remaining[i])
@@ -139,8 +152,9 @@ class Population:
 
             for ind in nondominated_inds:
                 ind.rank = current_rank
-
-            tqdm.write(f"Rank {current_rank}: {len(nondominated_inds)}")
+                if final:
+                    if not self.satisfies_constraints(ind):
+                        nondominated_inds.remove(ind)
 
             # Sort based on crowding distance if not all can fit
             if len(new_population) + len(nondominated_inds) > self.population_size:
@@ -152,3 +166,16 @@ class Population:
 
         new_population = new_population[:self.population_size]
         self.individuals = new_population
+
+    def population_summary(self):
+        for i in range(len(self.individuals)):
+            ecd = self.individuals[i].get_ecd_values()
+            segments = self.individuals[i].get_segments()
+            print(
+                f"Individual {i}: edge_value: {ecd[0]}, connectivity: {-1*ecd[1]}, deviation: {-1*ecd[2]}, num_segments: {max(segments)+1}, rank: {self.individuals[i].rank}")
+
+    def satisfies_constraints(self, individual: Individual) -> bool:
+        """ Check if the individual satisfies the constraints """
+        segments = individual.get_segments()
+        num_segments = max(segments) + 1
+        return self.segment_constraints['min'] <= num_segments <= self.segment_constraints['max']

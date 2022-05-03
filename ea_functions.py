@@ -70,7 +70,7 @@ def mutate(img_data, genotype: Genotype, image_dim: ImageDimensions, segment_con
     segments = Individual(img_data, genotype).get_segments()
     num_segments = max(segments)+1
     # 10% chance of mutation
-    if random_number <= 0.1 and num_segments <= int(0.9*segment_constraints['max']):
+    if random_number <= 0.1 * (max(0.5, 2-float(num_segments/segment_constraints['min']))) and num_segments <= int(0.9*segment_constraints['max']):
         new_genotype = genewise_mutation(
             genotype, 0.000002, image_dim)
     elif random_number <= 1.0:

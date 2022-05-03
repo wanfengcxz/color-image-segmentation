@@ -24,7 +24,7 @@ class Individual:
 
         self.fitness = None
         self.crowding_distance = None
-        self.rank = 100
+        self.rank = 1
 
     def fitness_function(self):
         """ Calculate fitness of individual """
