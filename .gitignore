@@ -5,3 +5,6 @@ __pycache__
 images
 evaluator/optimal
 evaluator/student
+.vscode/
+output/
+training_images/
