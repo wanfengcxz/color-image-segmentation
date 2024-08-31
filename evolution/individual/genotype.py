@@ -31,13 +31,17 @@ def initialize_genotype(
         if not added[node]:
             added[node] = 1
             node_rgb = image[node[0], node[1], :]
+            # 获取邻居 默认为上下左右 moore=True时，还有左上，右上，左下，右下
             for neighbour in get_neighbours(
                 node[0], node[1], graph_shape[0], graph_shape[1], moore=moore
             ):
                 neighbour_rgb = image[neighbour[0], neighbour[1], :]
                 heappush(
                     edge_queue,
-                    (np.linalg.norm(node_rgb - neighbour_rgb), (node, neighbour)),
+                    (
+                        np.linalg.norm(node_rgb - neighbour_rgb),  # RGB色彩空间中的距离
+                        (node, neighbour),
+                    ),
                 )
 
         edge = heappop(edge_queue)
