@@ -8,7 +8,9 @@ from evolution.utils import get_neighbours
 
 
 @njit
-def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> np.ndarray:
+def get_centroids(
+    phenotype: np.ndarray, image: np.ndarray, n_segments: int
+) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
 
@@ -20,12 +22,11 @@ def get_centroids(phenotype: np.ndarray, image: np.ndarray, n_segments: int) -> 
             node_rgb = image[row, col, :]
             centroids[segment, :] += node_rgb
             counts[segment] += 1
-    return centroids/counts.reshape((-1, 1))
+    return centroids / counts.reshape((-1, 1))
 
 
 @njit
-def phenotype_fitness(phenotype: np.ndarray,
-                      image: np.ndarray) -> np.ndarray:
+def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
     max_rows = phenotype.shape[0]
     max_cols = phenotype.shape[1]
     n_segments = np.max(phenotype) + 1
@@ -43,7 +44,7 @@ def phenotype_fitness(phenotype: np.ndarray,
                 if phenotype[row, col] != phenotype[neighbour]:
                     neighbour_rgb = image[neighbour[0], neighbour[1], :]
                     edge_value -= np.linalg.norm(node_rgb - neighbour_rgb)
-                    connectivity += (1/8)
+                    connectivity += 1 / 8
             deviation += np.linalg.norm(node_rgb - segment_centroids[segment])
 
     return np.array([edge_value, connectivity, deviation])
@@ -57,15 +58,17 @@ def genotype_fitness(genotype: np.ndarray, image: np.ndarray) -> np.ndarray:
 
 @njit
 def population_fitness(population: np.ndarray, image: np.ndarray) -> np.ndarray:
-    fitness = np.empty((population.shape[0], 3), dtype=numba.float64)
+    fitness = np.empty((population.shape[0], 3), dtype=np.float64)
     for i, individual in enumerate(population):
         fitness[i] = genotype_fitness(individual, image)
     return fitness
 
-@njit
-def weighted_population_fitness(population: np.ndarray, image: np.ndarray, weights: np.ndarray) -> np.ndarray:
-    fitness = np.empty(population.shape[0], dtype=numba.float64)
-    for i, individual in enumerate(population):
-            fitness[i] = np.dot(genotype_fitness(individual, image), weights)
-    return fitness
 
+@njit
+def weighted_population_fitness(
+    population: np.ndarray, image: np.ndarray, weights: np.ndarray
+) -> np.ndarray:
+    fitness = np.empty(population.shape[0], dtype=np.float64)
+    for i, individual in enumerate(population):
+        fitness[i] = np.dot(genotype_fitness(individual, image), weights)
+    return fitness

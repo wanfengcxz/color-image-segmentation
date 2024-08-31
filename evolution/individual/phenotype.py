@@ -8,7 +8,7 @@ from evolution.individual.gene import Gene, points_outwards, to_diff
 @njit
 def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
     genotype_2d = np.ascontiguousarray(genotype).reshape(rows, cols)
-    phenotype = -np.ones((rows, cols), dtype=numba.int16)
+    phenotype = -np.ones((rows, cols), dtype=np.int16)
     segment_value = 0
     for row in range(rows):
         for col in range(cols):
@@ -36,7 +36,6 @@ def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
 
                 path.append(node)
 
-
             if segment_merge_value == -1:
                 for node in path:
                     phenotype[node] = segment_value
@@ -46,5 +45,3 @@ def to_phenotype(genotype: np.ndarray, rows: int, cols: int) -> np.ndarray:
                     phenotype[node] = segment_merge_value
 
     return phenotype
-
-

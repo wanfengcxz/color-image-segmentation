@@ -7,10 +7,14 @@ from evolution.individual.genotype import initialize_genotype
 
 
 @njit
-def initialize_population(image: np.ndarray, population_size: int, n_segments: int = 24, moore: bool = True) -> np.ndarray:
-    population = np.zeros((population_size, image.shape[0] * image.shape[1]), dtype=numba.int16)
+def initialize_population(
+    image: np.ndarray, population_size: int, n_segments: int = 24, moore: bool = True
+) -> np.ndarray:
+    population = np.zeros(
+        (population_size, image.shape[0] * image.shape[1]), dtype=np.int16
+    )
     for i in range(population_size):
-        print(f'Initializing individual {i}')
+        print(f"Initializing individual {i}")
         population[i] = initialize_genotype(image, n_segments=n_segments, moore=moore)
     return population
 
@@ -40,13 +44,18 @@ def mutate(population: np.ndarray, p_mutate: float = 0.1) -> np.ndarray:
 
 
 @njit
-def new_population(population: np.ndarray, p_mutate: float = 0.1, p_crossover: float = 0.9, n_times: int = 1) -> np.ndarray:
+def new_population(
+    population: np.ndarray,
+    p_mutate: float = 0.1,
+    p_crossover: float = 0.9,
+    n_times: int = 1,
+) -> np.ndarray:
     children = population.copy()
     np.random.shuffle(children)
     children = uniform_crossover(children, p_crossover)
     children = mutate(children, p_mutate)
 
-    for n in range(n_times-1):
+    for n in range(n_times - 1):
         child = population.copy()
         np.random.shuffle(child)
         child = uniform_crossover(child, p_crossover)
