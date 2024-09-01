@@ -160,6 +160,7 @@ def nsga_ii(
     for g in range(generations):
         print(f"Generation {g}")
         R = np.vstack((P, Q))
+        # 计算父群和子群的适应度# 计算父群和子群的适应度
         fitness = population_fitness(R, image)
         front_assignment = fast_non_dominated_sort(fitness)
         crowding_assignment = crowding_distance(fitness, front_assignment)

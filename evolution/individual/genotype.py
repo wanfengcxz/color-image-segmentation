@@ -48,6 +48,7 @@ def initialize_genotype(
         from_node, to_node = edge[1]
         if not added[to_node]:
             gene = from_diff(from_node[0] - to_node[0], from_node[1] - to_node[1])
+            # 注意：计算to_node的坐标，然后在里面填入方向
             idx = to_node[0] * image.shape[1] + to_node[1]
             genotype[idx] = gene.value
             genotype_weights[idx] = edge[0]
@@ -56,6 +57,7 @@ def initialize_genotype(
         node = to_node
 
     if n_segments > 1:
+        # 从小到大排序
         highest_weights = np.argsort(genotype_weights)
         idxs = np.random.choice(
             highest_weights[-n_total // 2 :], np.random.randint(n_segments - 1)

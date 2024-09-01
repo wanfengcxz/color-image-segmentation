@@ -32,6 +32,8 @@ def phenotype_fitness(phenotype: np.ndarray, image: np.ndarray) -> np.ndarray:
     n_segments = np.max(phenotype) + 1
     segment_centroids = get_centroids(phenotype, image, n_segments)
 
+    # 计算 所有像素点 和 周围不属于同一个区域的像素点的 edge_value, connectivity
+    # 计算 所有像素 和 所属区域聚类中心的距离
     edge_value = 0.0
     connectivity = 0.0
     deviation = 0.0

@@ -13,27 +13,58 @@ class Gene(Enum):
     downright = 6
     upleft = 7
     downleft = 8
-    none = 9
+    none = 9  # none
 
 
 @njit
 def random_gene_value(moore=True) -> int:
-    genes = [Gene.right.value, Gene.left.value, Gene.up.value, Gene.down.value, Gene.none.value]
+    genes = [
+        Gene.right.value,
+        Gene.left.value,
+        Gene.up.value,
+        Gene.down.value,
+        Gene.none.value,
+    ]
     if moore:
-        genes.extend([Gene.upright.value, Gene.upleft.value, Gene.downleft.value, Gene.downright.value])
+        genes.extend(
+            [
+                Gene.upright.value,
+                Gene.upleft.value,
+                Gene.downleft.value,
+                Gene.downright.value,
+            ]
+        )
     gene = np.random.choice(np.array(genes))
     return gene
 
 
 @njit
-def points_outwards(gene_value: int, row: int, col: int, max_rows: int, max_cols: int) -> bool:
-    if row == 0 and gene_value in [Gene.up.value, Gene.upright.value, Gene.upleft.value]:
+def points_outwards(
+    gene_value: int, row: int, col: int, max_rows: int, max_cols: int
+) -> bool:
+    if row == 0 and gene_value in [
+        Gene.up.value,
+        Gene.upright.value,
+        Gene.upleft.value,
+    ]:
         return True
-    if row == max_rows - 1 and gene_value in [Gene.down.value, Gene.downright.value, Gene.downleft.value]:
+    if row == max_rows - 1 and gene_value in [
+        Gene.down.value,
+        Gene.downright.value,
+        Gene.downleft.value,
+    ]:
         return True
-    if col == 0 and gene_value in [Gene.left.value, Gene.upleft.value, Gene.downleft.value]:
+    if col == 0 and gene_value in [
+        Gene.left.value,
+        Gene.upleft.value,
+        Gene.downleft.value,
+    ]:
         return True
-    if col == max_cols - 1 and gene_value in [Gene.right.value, Gene.downright.value, Gene.upright.value]:
+    if col == max_cols - 1 and gene_value in [
+        Gene.right.value,
+        Gene.downright.value,
+        Gene.upright.value,
+    ]:
         return True
     return False
 
@@ -57,11 +88,11 @@ def to_diff(gene_value: int) -> tuple[int, int]:
     if gene_value == 8:
         return 1, -1
     if gene_value == 9:
-        return 0, 0
+        return 0, 0  # 原地踏步 有环
 
 
 @njit
-def from_diff(row_diff: int, col_diff: int) -> 'Gene':
+def from_diff(row_diff: int, col_diff: int) -> "Gene":
     if row_diff == 0 and col_diff > 0:
         return Gene.right
     if row_diff == 0 and col_diff < 0:

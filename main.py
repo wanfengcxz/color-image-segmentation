@@ -2,17 +2,17 @@ import argparse
 import os
 import datetime
 import shutil
-from scipy.io import loadmat
 import cv2
 
 import numpy as np
 from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
 
 from evaluator.run import eval_files
 from evolution.algorithms.nsga_ii import nsga_ii
 from evolution.algorithms.sga import sga
 from evolution.individual.phenotype import to_phenotype
-from utils import read_image
+from utils import read_image, read_hsi_image
 from visualization.individual import (
     save_type2,
     save_type1,
@@ -28,10 +28,18 @@ def main():
         "--image_path",
         help="path/to/image",
         type=str,
-        default="training_images/353013/Test image.jpg",
+        # default="training_images/353013/Test image.jpg",
+        default="training_images/pavia/PaviaU.mat",
     )
     parser.add_argument(
-        "-gt", "--ground_truth", help="path/to/ground/truth/dir", type=str, default=None
+        "--mode", help="pls choose from [hsi, rgb]", type=str, default="hsi"
+    )
+    parser.add_argument(
+        "-gt",
+        "--ground_truth",
+        help="path/to/ground/truth/dir",
+        type=str,
+        default="training_images\\pavia\\gt",
     )
     parser.add_argument(
         "-a",
@@ -52,20 +60,20 @@ def main():
         "--n_segments",
         help="Number of segments to initialize population with",
         type=int,
-        default=1,
+        default=25,
     )
     parser.add_argument(
-        "-n", "--population_size", help="Size of population", type=int, default=10
+        "-n", "--population_size", help="Size of population", type=int, default=50
     )
     parser.add_argument(
         "-g",
         "--generations",
         help="Number of generations to run for",
         type=int,
-        default=10,
+        default=100,
     )
     parser.add_argument(
-        "-pc", "--p_crossover", help="Crossover probability", type=float, default=0.8
+        "-pc", "--p_crossover", help="Crossover probability", type=float, default=0.7
     )
     parser.add_argument(
         "-pm", "--p_mutate", help="Mutation probability", type=float, default=0.2
@@ -78,14 +86,11 @@ def main():
         default=[1.0, 1.0, 1.0],
     )
     parser.add_argument(
-        "--mode", help="pls choose from [hsi, rgb]", type=str, default="hsi"
-    )
-    parser.add_argument(
-        "--r",
+        "-r",
         "--reduce_algo",
         help="dimension reduce, support [pca]",
         type=str,
-        default=None,
+        default="pca",
     )
 
     args = parser.parse_args()
@@ -93,7 +98,7 @@ def main():
     timestamp = datetime.datetime.now()
 
     output_dir = os.path.join(
-        args.output_dir, args.algorithm, timestamp.strftime("%d-%H%M%S")
+        args.output_dir, args.mode, args.algorithm, timestamp.strftime("%d-%H%M%S")
     )
 
     type1_dir = os.path.join(output_dir, "segmentations", "type1")
@@ -103,24 +108,31 @@ def main():
     os.makedirs(type2_dir, exist_ok=True)
     os.makedirs(color_dir, exist_ok=True)
 
-    # image = read_image(args.image_path)
-    # cv2.imshow("image", image)
-    # cv2.waitKey(0)
-    image = loadmat("training_images/pavia/PaviaU.mat")["paviaU"]  # (610, 340, 103)
-    image = image / image.max()
-    # cv2.imshow("image", image[:, :, 50:53])
-    # cv2.waitKey(0)
+    if args.mode == "hsi":
+        print("Read hsi image...")
+        image_ori = read_hsi_image("training_images/pavia/PaviaU.mat", "paviaU")
+        # cv2.imshow("image", image[:, :, 50:53])
+        # cv2.waitKey(0)
+    elif args.mode == "rgb":
+        print("Read rgb image...")
+        image_ori = read_image(args.image_path)
+        # cv2.imshow("image", image)
+        # cv2.waitKey(0)
+    else:
+        print("error mode")
+        return
 
-    # plt.imsave(os.path.join(output_dir, "image.png"), image)
-    plt.imsave(os.path.join(output_dir, "image.png"), image[:, :, 50:53])
-    # image = image[:, :, 50:53]
+    plt.imsave(os.path.join(output_dir, "image.png"), image_ori[:, :, 50:53])
+    if args.reduce_algo == "pca" and args.mode == "hsi":
+        print("Use pca...")
+        shape = image_ori.shape
+        pca = PCA(n_components=3)
+        image = pca.fit_transform(image_ori.reshape(-1, shape[-1]))
+        image = image.reshape(shape[0], shape[1], 3)
+    else:
+        image = image_ori
 
-    if args.ground_truth is not None:
-        gt_dir = os.path.join(output_dir, "gts")
-        os.makedirs(gt_dir, exist_ok=True)
-        for gt in os.listdir(args.ground_truth):
-            shutil.copy(os.path.join(args.ground_truth, gt), gt_dir)
-
+    print("Start algo...")
     if args.algorithm == "nsga":
         population, front_assignment = nsga_ii(
             image=image,
@@ -133,8 +145,8 @@ def main():
         )
 
         print("Saving images...")
-        if image.shape[-1] != 3:
-            image = image[:, :, 50:53]
+        if image_ori.shape[-1] != 3:
+            image = image_ori[:, :, 50:53]
         for i, individual in enumerate(population[np.where(front_assignment == 1)]):
             phenotype = to_phenotype(individual, image.shape[0], image.shape[1])
             segmentation = to_contour_segmentation_v2(phenotype)
@@ -165,6 +177,8 @@ def main():
         )
 
         print("Saving images...")
+        if image_ori.shape[-1] != 3:
+            image = image_ori[:, :, 50:53]
         phenotype = to_phenotype(population[0], image.shape[0], image.shape[1])
         segmentation = to_contour_segmentation_v2(phenotype)
         save_type1(
@@ -176,6 +190,8 @@ def main():
         )
 
     if args.ground_truth is not None:
+        print("Start eval...")
+        gt_dir = args.ground_truth
         results = eval_files(gt_dir, type2_dir)
         with open(os.path.join(output_dir, "PRI.csv"), "w") as file:
             np.savetxt(file, results)

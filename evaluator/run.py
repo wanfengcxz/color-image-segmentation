@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from evaluator.fileReader import readImage
+from evaluator.fileReader import readHSIImage
 from evaluator.fileReader import readTextFile
 import re
 

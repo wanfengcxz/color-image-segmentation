@@ -16,13 +16,13 @@ def readImage(filename):
     data = fixData(list(im.getdata()))
     # get pixel (x,y) by pixel_values[width*y+x]
     try:
-        return np.array(data).reshape((height, width))
+        return np.array(data).reshape((height, width)).astype(np.int32)
     except:
         raise Exception("Mo")
 
 
-def readHSIImage(filename):
-    im = loadmat(filename)
+def readHSIImage(filename, key="paviaU_gt"):
+    im = loadmat(filename)["paviaU_gt"].astype(np.int32)
     return im
 
 

@@ -24,9 +24,11 @@ def uniform_crossover(population: np.ndarray, p_crossover: float = 0.7) -> np.nd
     population = population.copy()
     for p1, p2 in zip(population[::2], population[1::2]):
         if np.random.random() < p_crossover:
+            # 生成交叉掩码 [0,2)之间随机生成整数
             mask = np.random.randint(0, 2, size=p1.shape[0])
             temp1 = p1.copy()
             temp2 = p2.copy()
+            # 对应位置互换元素
             temp1[np.where(mask == 1)] = p2[np.where(mask == 1)]
             temp2[np.where(mask == 1)] = p1[np.where(mask == 1)]
             p1[:], p2[:] = temp1, temp2
@@ -51,7 +53,7 @@ def new_population(
     n_times: int = 1,
 ) -> np.ndarray:
     children = population.copy()
-    np.random.shuffle(children)
+    np.random.shuffle(children)  # 打乱第一维的顺序，即将个体打乱
     children = uniform_crossover(children, p_crossover)
     children = mutate(children, p_mutate)
 
