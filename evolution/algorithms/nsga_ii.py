@@ -7,7 +7,11 @@ from numba.typed import List, Dict
 
 
 from evolution.fitness import population_fitness
-from evolution.population.population import new_population, initialize_population
+from evolution.population.population import (
+    new_population,
+    initialize_population,
+    initialize_population_fcm,
+)
 from evolution.utils import int_list_type
 
 
@@ -155,7 +159,10 @@ def nsga_ii(
         file.write("generation,edge_value,connectivity,deviation,front\n")
         file.close()
 
-    P = initialize_population(image, population_size, n_segments=n_segments)
+    population_size = 10
+    K = 20
+
+    P = initialize_population_fcm(regions, population_size, K)
     Q = new_population(P, p_mutate=p_mutate, p_crossover=p_crossover, n_times=n_times)
     for g in range(generations):
         print(f"Generation {g}")

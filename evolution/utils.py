@@ -5,22 +5,33 @@ import pandas as pd
 import numpy as np
 from numba import njit
 
+from sklearn.cluster import MeanShift
+
 int_list_type = numba.types.ListType(numba.int16)
 
 
-def save_fitness(fitness: np.ndarray,
-                 path: str,
-                 front_assignment: Optional[np.ndarray] = None) -> None:
+def save_fitness(
+    fitness: np.ndarray, path: str, front_assignment: Optional[np.ndarray] = None
+) -> None:
 
-    df = pd.DataFrame(fitness, columns=['Edge Value', 'Connectivity', 'Deviation'])
+    df = pd.DataFrame(fitness, columns=["Edge Value", "Connectivity", "Deviation"])
     if front_assignment is not None:
-        df['Front'] = front_assignment
+        df["Front"] = front_assignment
 
     df.to_csv(path, index=False)
 
 
+def preprocess_cluster(image, cluster_algo="meanshift"):
+    height, width, bands = image.shape
+    meanshift = MeanShift()
+    meanshift.fit(image.reshape(-1, bands))
+    return meanshift.labels_, meanshift.cluster_centers_
+
+
 @njit
-def get_neighbours(row: int, col: int, max_rows: int, max_cols: int, moore: bool = True) -> list:
+def get_neighbours(
+    row: int, col: int, max_rows: int, max_cols: int, moore: bool = True
+) -> list:
     neighbours = []
     if col > 0:  # 1
         neighbours.append((row, col - 1))
@@ -57,7 +68,7 @@ def numba_choice(population, weights, k):
         # Pick random weight value
         r = m * np.random.rand()
         # Get corresponding index
-        idx = np.searchsorted(wc, r, side='right')
+        idx = np.searchsorted(wc, r, side="right")
 
         # Save sampled value and index
         sample[i] = population[idx]

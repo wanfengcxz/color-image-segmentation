@@ -20,6 +20,17 @@ def initialize_population(
 
 
 @njit
+def initialize_population_fcm(
+    regions: np.ndarray,  # N个区域
+    population_size: int,
+    K: int = 24,  # K个聚类中心
+) -> np.ndarray:
+    # 随机初始化种群
+    population = np.random.uniform(0, K, size=(population_size, K))
+    return population
+
+
+@njit
 def uniform_crossover(population: np.ndarray, p_crossover: float = 0.7) -> np.ndarray:
     population = population.copy()
     for p1, p2 in zip(population[::2], population[1::2]):
