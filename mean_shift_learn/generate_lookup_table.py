@@ -12,7 +12,7 @@ from numba import njit
 
 def mean_shift(data):
     # 创建MeanShift对象
-    meanshift = MeanShift(n_jobs=-1, max_iter=2)
+    meanshift = MeanShift(n_jobs=-1)
     # 拟合数据
     meanshift.fit(data.reshape(-1, bands))
 
@@ -20,11 +20,23 @@ def mean_shift(data):
 
 
 if __name__ == "__main__":
-    # hyperspectral_image.shape = (height, width, bands)
-    hsi_img = loadmat("..\\training_images\\pavia\\PaviaU.mat")["paviaU"][..., 31:32]
-    height, width, bands = hsi_img.shape
 
+    hsi_img = loadmat("..\\training_images\\pavia\\PaviaU.mat")["paviaU"]
+    height, width, bands = hsi_img.shape
     hsi_img = hsi_img / hsi_img.max()
+
+    # bands_list = range(bands)
+    radius_list = [5]
+    bands_list = [10]
+    for spec_idx in bands_list:
+        img = hsi_img[spec_idx]
+        data = img.reshape(-1, 1)
+        for radius in radius_list:
+            meanshift = MeanShift(
+                bandwidth=radius,
+                n_jobs=-1,
+            )
+
     # cv2.imshow("img", data)
     # cv2.waitKey(0)
 
